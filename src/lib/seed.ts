@@ -1,0 +1,298 @@
+import type { CollectionId, Record } from "@/lib/types";
+
+// Seed data extracted from the team's working spreadsheet (Cribl web/content
+// team). This is a representative subset so the grid is populated and the
+// field mapping is exercised end to end. It will be replaced by live Jira data
+// once the JiraAdapter is wired up.
+
+let counter = 0;
+const id = () => `seed-${++counter}`;
+
+const content = (f: Record["fields"], jiraKey: string | null = null): Record => ({
+  id: id(),
+  jiraKey,
+  fields: f,
+});
+
+export const SEED: { [K in CollectionId]: Record[] } = {
+  content: [
+    content(
+      {
+        searchType: "Both",
+        status: "New",
+        quarter: "Q2",
+        type: "Core",
+        targetPrompt: "What are the top log collection and analysis tools?",
+        keyword: "Best Log Collection Platforms",
+        volume: 29,
+        format: "Listicle",
+        topic: "Log / Event / Trace / Metrics Management",
+        subtopic: "Log Collection",
+        contentType: "Resources",
+        stage: "With Marketing Strat",
+        priorityBucket: "Visibility",
+        priorityLevel: "1. High",
+        owner: "Bill",
+        startMonth: "Apr-26",
+        endMonth: "May-26",
+        publishedUrl: "",
+      },
+      "WEB-1022"
+    ),
+    content(
+      {
+        searchType: "Both",
+        status: "New",
+        quarter: "",
+        type: "Core",
+        targetPrompt: "What are the top log monitoring tools available?",
+        keyword: "best log monitoring tools",
+        volume: 28,
+        format: "Listicle",
+        topic: "Log / Event / Trace / Metrics Management",
+        subtopic: "Log Monitoring",
+        contentType: "Resources",
+        stage: "With Marketing Strat",
+        priorityBucket: "Visibility",
+        priorityLevel: "1. High",
+        owner: "Bill",
+        startMonth: "TBD",
+        endMonth: "",
+        publishedUrl: "",
+      },
+      "WEB-1084"
+    ),
+    content(
+      {
+        searchType: "",
+        status: "New",
+        quarter: "Q2",
+        type: "Core",
+        targetPrompt: "Which data lake platforms are best?",
+        keyword: "Best data lake platforms",
+        volume: 27,
+        format: "Listicle",
+        topic: "Data Strategy",
+        subtopic: "Data lakes",
+        contentType: "Resources",
+        stage: "With Marketing Strat",
+        priorityBucket: "Visibility",
+        priorityLevel: "1. High",
+        owner: "Felicia",
+        startMonth: "TBD",
+        endMonth: "",
+        publishedUrl: "",
+      },
+      "WEB-1060"
+    ),
+    content(
+      {
+        searchType: "LLM",
+        status: "New",
+        quarter: "Q2",
+        type: "Core",
+        targetPrompt: "What are the best data pipeline tools?",
+        keyword: "best data pipeline tools",
+        volume: 22,
+        format: "Listicle",
+        topic: "Telemetry Pipeline (Stream)",
+        subtopic: "Data Pipelines",
+        contentType: "Resources",
+        stage: "Planning",
+        priorityBucket: "Strategic",
+        priorityLevel: "3. Low",
+        owner: "Desi",
+        startMonth: "TBD",
+        endMonth: "",
+        publishedUrl: "",
+      },
+      null
+    ),
+    content(
+      {
+        searchType: "LLM",
+        status: "New",
+        quarter: "Q1",
+        type: "Campaign",
+        targetPrompt: "How to implement threat detection and incident response?",
+        keyword: "",
+        volume: 2,
+        format: "Long Form",
+        topic: "Investigations",
+        subtopic: "Incident analysis and response",
+        contentType: "Blog",
+        stage: "Complete",
+        priorityBucket: "Campaign",
+        priorityLevel: "3. Low",
+        owner: "Felicia",
+        startMonth: "Apr-26",
+        endMonth: "May-26",
+        publishedUrl:
+          "https://cribl.io/blog/implementing-threat-detection-and-incident-response-effectively/",
+      },
+      "WEB-982"
+    ),
+    content(
+      {
+        searchType: "LLM",
+        status: "New",
+        quarter: "Q3",
+        type: "Core",
+        targetPrompt: "Best practices for log enrichment with business context?",
+        keyword: "",
+        volume: 2,
+        format: "Long Form",
+        topic: "Log / Event / Trace / Metrics Management",
+        subtopic: "Log Enrichment",
+        contentType: "Blog",
+        stage: "Recommendations Created",
+        priorityBucket: "Strategic",
+        priorityLevel: "3. Low",
+        owner: "Bill",
+        startMonth: "Apr-26",
+        endMonth: "May-26",
+        publishedUrl: "",
+      },
+      "WEB-999"
+    ),
+    content(
+      {
+        searchType: "Both",
+        status: "Current",
+        quarter: "",
+        type: "Campaign",
+        targetPrompt: "How does siem augmentation improve threat detection?",
+        keyword: "siem augmentation",
+        volume: 2,
+        format: "Long Form",
+        topic: "SecOps Optimization",
+        subtopic: "SIEM Augmentation",
+        contentType: "Blog",
+        stage: "Planning",
+        priorityBucket: "Campaign",
+        priorityLevel: "3. Low",
+        owner: "Bill, Carlo",
+        startMonth: "",
+        endMonth: "",
+        publishedUrl: "",
+      },
+      null
+    ),
+    content(
+      {
+        searchType: "LLM",
+        status: "New",
+        quarter: "Q1",
+        type: "Visibility",
+        targetPrompt: "How to build reliable data pipelines?",
+        keyword: "",
+        volume: 2,
+        format: "Blog",
+        topic: "Telemetry Pipeline (Stream)",
+        subtopic: "Data Pipelines",
+        contentType: "Blog",
+        stage: "Complete",
+        priorityBucket: "Visibility",
+        priorityLevel: "2. Medium",
+        owner: "Desi",
+        startMonth: "",
+        endMonth: "",
+        publishedUrl: "https://cribl.io/blog/building-data-pipelines-for-reliability/",
+      },
+      "WEB-1026"
+    ),
+  ],
+
+  okr: [
+    {
+      id: id(),
+      fields: {
+        objectiveNum: 1,
+        krNum: "1.1",
+        keyResult: "Deliver brand and company wide initiatives to Cribl.io",
+        priority: "P0",
+        startValue: 0,
+        targetValue: 6400,
+        expectedValue: 1600,
+        actualValue: null,
+        progress: "",
+        owner: "Mickey",
+        objective: "1. Increase discoverability and key conversions across Cribl.io",
+      },
+    },
+    {
+      id: id(),
+      fields: {
+        objectiveNum: 1,
+        krNum: "1.3",
+        keyResult: "Secure a 17.5% organic CTR on product & solution pages",
+        priority: "P0",
+        startValue: 70,
+        targetValue: 75,
+        expectedValue: 75,
+        actualValue: 72,
+        progress: "96%",
+        owner: "Alex / PMM",
+        objective: "1. Increase discoverability and key conversions across Cribl.io",
+      },
+    },
+    {
+      id: id(),
+      fields: {
+        objectiveNum: 2,
+        krNum: "2.1",
+        keyResult:
+          "Integrate with core marketing systems to enhance targeting, attribution, and analytics",
+        priority: "P1",
+        startValue: 0,
+        targetValue: 8,
+        expectedValue: 2,
+        actualValue: null,
+        progress: "",
+        owner: "Alex",
+        objective:
+          "2. Unlock a best-in-class web platform to publish, optimize, and measure web content",
+      },
+    },
+    {
+      id: id(),
+      fields: {
+        objectiveNum: 3,
+        krNum: "3.2",
+        keyResult: "Maintain “Good” Core Web Vitals ratings for ≥75% of users",
+        priority: "P1",
+        startValue: 65,
+        targetValue: 75,
+        expectedValue: 68,
+        actualValue: 81,
+        progress: "100%",
+        owner: "Alex",
+        objective:
+          "3. Ensure Cribl.io is compliant, fast, accessible, and optimized for search and LLMs",
+      },
+    },
+  ],
+
+  quarterPlan: [
+    { id: id(), fields: { quarter: "Q1", owner: "Desi", item: "Which observability pipeline solutions are best?" } },
+    { id: id(), fields: { quarter: "Q1", owner: "Bill", item: "What are centralized logging best practices in 2026?" } },
+    { id: id(), fields: { quarter: "Q1", owner: "Felicia", item: "How to conduct insider threat hunting effectively?" } },
+    { id: id(), fields: { quarter: "Q2", owner: "Desi", item: "What are the best data pipeline tools?" } },
+    { id: id(), fields: { quarter: "Q2", owner: "Bill", item: "What are the best log monitoring tools?" } },
+    { id: id(), fields: { quarter: "Q2", owner: "Felicia", item: "Which data lake platforms are best?" } },
+    { id: id(), fields: { quarter: "Q2", owner: "Carlo", item: "Best security log management tools for SOC?" } },
+    { id: id(), fields: { quarter: "Q2", owner: "Judith", item: "How to optimize log data collection workflows?" } },
+  ],
+
+  topicOwners: [
+    { id: id(), fields: { topic: "Edge", primaryPMM: "Desi", secondaryPMM: "Judith" } },
+    { id: id(), fields: { topic: "Telemetry / O11y Pipeline (Stream)", primaryPMM: "Desi", secondaryPMM: "Holly" } },
+    { id: id(), fields: { topic: "Data Management", primaryPMM: "Bill", secondaryPMM: "" } },
+    { id: id(), fields: { topic: "Log / Event / Trace / Metrics Management", primaryPMM: "Bill", secondaryPMM: "" } },
+    { id: id(), fields: { topic: "Search", primaryPMM: "Felicia", secondaryPMM: "" } },
+    { id: id(), fields: { topic: "Agentic Telemetry", primaryPMM: "Alex", secondaryPMM: "Judith" } },
+    { id: id(), fields: { topic: "Investigations", primaryPMM: "Felicia", secondaryPMM: "" } },
+    { id: id(), fields: { topic: "SecOps Optimization", primaryPMM: "Carlo", secondaryPMM: "" } },
+    { id: id(), fields: { topic: "SIEM Migration", primaryPMM: "Desi", secondaryPMM: "Holly" } },
+  ],
+};

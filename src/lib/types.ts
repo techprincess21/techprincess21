@@ -1,0 +1,46 @@
+// Domain model for the spreadsheet frontend.
+//
+// Everything is modeled as a generic `Record` that belongs to a `collection`.
+// This keeps the storage layer agnostic to the specific shape of each tab and,
+// crucially, maps cleanly onto Jira later: a collection corresponds to a Jira
+// project + issue type, and a record's `fields` map onto Jira fields.
+
+export type CollectionId =
+  | "content" // the content-pipeline tab (the team's primary working surface)
+  | "okr" // objectives & key results
+  | "quarterPlan" // quarter x owner planning grid
+  | "topicOwners"; // topic -> primary/secondary PMM ownership
+
+export type FieldValue = string | number | null;
+
+export interface Record {
+  id: string;
+  // For records that originate from / sync to Jira, this is the issue key
+  // (e.g. "WEB-1022"). Null for records that only live in the app for now.
+  jiraKey?: string | null;
+  fields: { [key: string]: FieldValue };
+}
+
+export type ColumnType = "text" | "longtext" | "number" | "select" | "url" | "jira";
+
+export interface ColumnDef {
+  key: string;
+  label: string;
+  type: ColumnType;
+  options?: string[]; // for `select`
+  width?: number; // px hint
+  readOnly?: boolean;
+}
+
+export interface ViewDef {
+  id: string;
+  label: string;
+  collection: CollectionId;
+  description?: string;
+  columns: ColumnDef[];
+  // Optional column key to group rows by (renders grouped sections, like the
+  // sheet's stage swimlanes).
+  groupBy?: string;
+  // Default field values applied when adding a new row in this view.
+  defaults?: { [key: string]: FieldValue };
+}
