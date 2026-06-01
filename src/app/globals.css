@@ -319,6 +319,158 @@ body {
   background: var(--accent-dark);
 }
 
+.btn-ghost {
+  background: transparent;
+  border-color: var(--border-strong);
+  color: var(--muted);
+}
+
+.btn-ghost:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* Customize modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(27, 31, 42, 0.45);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  z-index: 200;
+  padding: 48px 16px;
+  overflow-y: auto;
+}
+
+.modal {
+  background: #fff;
+  width: 100%;
+  max-width: 620px;
+  border-radius: 14px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 22px 6px;
+}
+
+.modal-head h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.modal-close {
+  border: none;
+  background: none;
+  font-size: 24px;
+  line-height: 1;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.modal-sub {
+  color: var(--muted);
+  margin: 0;
+  padding: 0 22px 12px;
+  font-size: 13px;
+}
+
+.modal-body {
+  padding: 4px 22px 8px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.cz-section {
+  padding: 14px 0;
+  border-top: 1px solid var(--border);
+}
+
+.cz-section h3 {
+  margin: 0 0 10px;
+  font-size: 14px;
+}
+
+.cz-note {
+  color: var(--muted);
+  font-size: 12px;
+  margin: -4px 0 10px;
+}
+
+.cz-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.cz-empty {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.cz-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #fff;
+  font-weight: 600;
+  font-size: 12px;
+  padding: 4px 6px 4px 12px;
+  border-radius: 999px;
+}
+
+.cz-chip.person {
+  background: #eceef3;
+  color: var(--text);
+}
+
+.cz-chip button {
+  border: none;
+  background: rgba(255, 255, 255, 0.3);
+  color: inherit;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.cz-chip.person button {
+  background: #d6d9e2;
+}
+
+.cz-add {
+  display: flex;
+  gap: 8px;
+}
+
+.cz-add input {
+  flex: 1;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font: inherit;
+}
+
+.cz-add input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.modal-foot {
+  padding: 14px 22px 18px;
+  display: flex;
+  justify-content: flex-end;
+  border-top: 1px solid var(--border);
+}
+
 /* Boards / groups */
 .boards {
   display: flex;

@@ -4,10 +4,25 @@ import { useEffect, useMemo, useState } from "react";
 import type { ColumnDef, FieldValue, Record, ViewDef } from "@/lib/types";
 import { avatarColor, chipColor, groupColor, initials, splitPeople } from "@/lib/colors";
 import MultiSelect from "./MultiSelect";
+import CustomizeModal from "./CustomizeModal";
 
 const JIRA_BASE = "https://taktak.atlassian.net";
 
-export default function EditableGrid({ view }: { view: ViewDef }) {
+const PEOPLE_LIST_ID = "people-options";
+
+export default function EditableGrid({
+  view,
+  optionOverrides = {},
+  people = [],
+  onSaveOptions,
+  onSavePeople,
+}: {
+  view: ViewDef;
+  optionOverrides?: { [columnKey: string]: string[] };
+  people?: string[];
+  onSaveOptions?: (columnKey: string, options: string[]) => void;
+  onSavePeople?: (people: string[]) => void;
+}) {
   const [records, setRecords] = useState<Record[] | null>(null);
   const [savingCell, setSavingCell] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
@@ -18,6 +33,13 @@ export default function EditableGrid({ view }: { view: ViewDef }) {
 
   // Automation toast (when a workflow playbook opens tickets)
   const [toast, setToast] = useState<string | null>(null);
+
+  // Customize panel
+  const [customizeOpen, setCustomizeOpen] = useState(false);
+
+  // Effective dropdown options for a column: per-board overrides win over the
+  // code defaults.
+  const effOptions = (col: ColumnDef): string[] => optionOverrides[col.key] ?? col.options ?? [];
 
   useEffect(() => {
     let cancelled = false;
@@ -122,7 +144,9 @@ export default function EditableGrid({ view }: { view: ViewDef }) {
   const optionsByCol = useMemo(() => {
     const out: { [key: string]: string[] } = {};
     for (const col of filterCols) {
-      const set = new Set<string>(col.type === "select" ? col.options ?? [] : []);
+      const set = new Set<string>(
+        col.type === "select" ? effOptions(col) : col.type === "person" ? people : []
+      );
       for (const r of records ?? []) {
         const raw = r.fields[col.key];
         const val = raw == null ? "" : String(raw);
@@ -132,7 +156,8 @@ export default function EditableGrid({ view }: { view: ViewDef }) {
       out[col.key] = [...set].filter(Boolean).sort();
     }
     return out;
-  }, [filterCols, records]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterCols, records, optionOverrides, people]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -220,10 +245,37 @@ export default function EditableGrid({ view }: { view: ViewDef }) {
           </button>
         )}
 
+        {onSaveOptions && onSavePeople && (
+          <button className="btn btn-ghost" onClick={() => setCustomizeOpen(true)} title="Customize this board">
+            ⚙ Customize
+          </button>
+        )}
+
         <span className="result-count">
           {totalShown === totalAll ? `${totalAll} items` : `${totalShown} of ${totalAll}`}
         </span>
       </div>
+
+      <datalist id={PEOPLE_LIST_ID}>
+        {people.map((p) => (
+          <option key={p} value={p} />
+        ))}
+      </datalist>
+
+      {customizeOpen && onSaveOptions && onSavePeople && (
+        <CustomizeModal
+          view={view}
+          optionsByColumn={Object.fromEntries(
+            view.columns
+              .filter((c) => c.type === "select")
+              .map((c) => [c.key, effOptions(c)])
+          )}
+          people={people}
+          onSaveOptions={onSaveOptions}
+          onSavePeople={onSavePeople}
+          onClose={() => setCustomizeOpen(false)}
+        />
+      )}
 
       {totalShown === 0 ? (
         <div className="results-empty">No items match your filters.</div>
@@ -270,6 +322,7 @@ export default function EditableGrid({ view }: { view: ViewDef }) {
                                   col={col}
                                   value={rec.fields[col.key] ?? null}
                                   jiraKey={rec.jiraKey ?? null}
+                                  options={effOptions(col)}
                                   saving={savingCell === `${rec.id}:${col.key}`}
                                   onCommit={(v) => saveField(rec, col.key, v)}
                                 />
@@ -311,12 +364,14 @@ function Cell({
   col,
   value,
   jiraKey,
+  options,
   saving,
   onCommit,
 }: {
   col: ColumnDef;
   value: FieldValue;
   jiraKey: string | null;
+  options?: string[];
   saving: boolean;
   onCommit: (v: FieldValue) => void;
 }) {
@@ -340,6 +395,7 @@ function Cell({
   }
 
   if (col.type === "select") {
+    const opts = options ?? col.options ?? [];
     const color = chipColor(draft);
     return (
       <div className="status-chip" style={{ background: color }}>
@@ -351,12 +407,12 @@ function Cell({
             onCommit(e.target.value);
           }}
         >
-          {(col.options ?? []).map((opt) => (
+          {opts.map((opt) => (
             <option key={opt} value={opt}>
               {opt || "—"}
             </option>
           ))}
-          {draft && !(col.options ?? []).includes(draft) && <option value={draft}>{draft}</option>}
+          {draft && !opts.includes(draft) && <option value={draft}>{draft}</option>}
         </select>
       </div>
     );
@@ -388,6 +444,7 @@ function Cell({
           className={`cell-input person-input ${saving ? "is-saving" : ""}`}
           value={draft}
           placeholder="Assign…"
+          list={PEOPLE_LIST_ID}
           onChange={(e) => setDraft(e.target.value)}
           onBlur={() => onCommit(draft || null)}
         />
