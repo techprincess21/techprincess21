@@ -64,4 +64,9 @@ export class JiraAdapter implements DataAdapter {
     // Planned: DELETE /rest/api/3/issue/{key} (or transition to a closed state).
     throw new Error(NOT_READY);
   }
+
+  async reorder(_collection: CollectionId, _ids: string[]): Promise<void> {
+    // Planned: Jira ranking via the Agile API (rank issue before/after another).
+    throw new Error(NOT_READY);
+  }
 }

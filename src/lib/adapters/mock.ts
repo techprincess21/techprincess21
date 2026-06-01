@@ -78,4 +78,15 @@ export class MockAdapter implements DataAdapter {
     db[collection] = (db[collection] ?? []).filter((r) => r.id !== id);
     await persist();
   }
+
+  async reorder(collection: CollectionId, ids: string[]): Promise<void> {
+    const db = await load();
+    const list = db[collection] ?? [];
+    const pos = new Map(ids.map((id, i) => [id, i]));
+    const rank = (id: string) => (pos.has(id) ? (pos.get(id) as number) : Number.MAX_SAFE_INTEGER);
+    // Array.prototype.sort is stable, so records absent from `ids` keep order.
+    list.sort((a, b) => rank(a.id) - rank(b.id));
+    db[collection] = list;
+    await persist();
+  }
 }

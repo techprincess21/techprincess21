@@ -4,18 +4,19 @@ import { VIEWS } from "@/lib/views";
 
 // Per-board customization store.
 //
-// Marketers need to tailor the dropdowns to each launch — e.g. a launch with no
-// CKO shouldn't show "Post-CKO" as a time period. This store holds, per view,
-// the option lists for each select column (overriding the code defaults), plus
-// a shared list of people for owner autocomplete.
+// Marketers need to tailor boards to each launch without code: the dropdown
+// choices per column, the order of columns, the order of tabs, the chip colors,
+// and a shared list of people for owner autocomplete.
 //
 // Mock-backed today (a JSON file). With Jira live, much of this maps onto Jira's
 // own field/option configuration — but keeping an app-level layer means teams
 // can customize their board without needing Jira admin rights.
 
 export interface AppConfig {
-  // options[viewId][columnKey] = string[]
   options: { [viewId: string]: { [columnKey: string]: string[] } };
+  columnOrder: { [viewId: string]: string[] };
+  tabOrder: string[];
+  colors: { [viewId: string]: { [columnKey: string]: { [value: string]: string } } };
   people: string[];
 }
 
@@ -31,31 +32,41 @@ const DEFAULT_PEOPLE = [
 
 function defaultConfig(): AppConfig {
   const options: AppConfig["options"] = {};
+  const columnOrder: AppConfig["columnOrder"] = {};
   for (const view of VIEWS) {
     const cols: { [columnKey: string]: string[] } = {};
     for (const col of view.columns) {
       if (col.type === "select") cols[col.key] = [...(col.options ?? [])];
     }
     options[view.id] = cols;
+    columnOrder[view.id] = view.columns.map((c) => c.key);
   }
-  return { options, people: [...DEFAULT_PEOPLE] };
+  return {
+    options,
+    columnOrder,
+    tabOrder: VIEWS.map((v) => v.id),
+    colors: {},
+    people: [...DEFAULT_PEOPLE],
+  };
 }
 
 let cache: AppConfig | null = null;
 
 export async function getConfig(): Promise<AppConfig> {
   if (cache) return cache;
+  const base = defaultConfig();
   try {
     const raw = await fs.readFile(CONFIG_FILE, "utf8");
-    const saved = JSON.parse(raw) as AppConfig;
-    // Merge defaults so newly added views/columns always have a baseline.
-    const base = defaultConfig();
+    const saved = JSON.parse(raw) as Partial<AppConfig>;
     cache = {
-      options: { ...base.options, ...saved.options },
+      options: { ...base.options, ...(saved.options ?? {}) },
+      columnOrder: { ...base.columnOrder, ...(saved.columnOrder ?? {}) },
+      tabOrder: saved.tabOrder?.length ? saved.tabOrder : base.tabOrder,
+      colors: saved.colors ?? {},
       people: saved.people?.length ? saved.people : base.people,
     };
   } catch {
-    cache = defaultConfig();
+    cache = base;
     await persist();
   }
   return cache;
@@ -71,18 +82,39 @@ async function persist(): Promise<void> {
   }
 }
 
-export async function setColumnOptions(
-  viewId: string,
-  columnKey: string,
-  opts: string[]
-): Promise<AppConfig> {
+export async function setColumnOptions(viewId: string, columnKey: string, opts: string[]) {
   const cfg = await getConfig();
   cfg.options[viewId] = { ...(cfg.options[viewId] ?? {}), [columnKey]: opts };
   await persist();
   return cfg;
 }
 
-export async function setPeople(people: string[]): Promise<AppConfig> {
+export async function setColumnOrder(viewId: string, keys: string[]) {
+  const cfg = await getConfig();
+  cfg.columnOrder[viewId] = keys;
+  await persist();
+  return cfg;
+}
+
+export async function setTabOrder(ids: string[]) {
+  const cfg = await getConfig();
+  cfg.tabOrder = ids;
+  await persist();
+  return cfg;
+}
+
+export async function setColor(viewId: string, columnKey: string, value: string, hex: string | null) {
+  const cfg = await getConfig();
+  const forView = cfg.colors[viewId] ?? {};
+  const forCol = { ...(forView[columnKey] ?? {}) };
+  if (hex) forCol[value] = hex;
+  else delete forCol[value];
+  cfg.colors[viewId] = { ...forView, [columnKey]: forCol };
+  await persist();
+  return cfg;
+}
+
+export async function setPeople(people: string[]) {
   const cfg = await getConfig();
   cfg.people = people;
   await persist();

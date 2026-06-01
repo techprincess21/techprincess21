@@ -2,28 +2,34 @@
 
 import { useState } from "react";
 import type { ViewDef } from "@/lib/types";
-import { chipColor } from "@/lib/colors";
+import { chipColor, PALETTE } from "@/lib/colors";
 
-// Lets a non-technical user tailor a board: edit the dropdown choices for each
-// select column (statuses, time periods, types…) and manage the shared list of
-// people. Changes persist immediately via the parent's save callbacks.
+// Lets a non-technical user tailor a board: edit + reorder the dropdown choices
+// for each select column, pick a color per choice, and manage the shared people
+// list. Changes persist immediately via the parent's save callbacks.
 export default function CustomizeModal({
   view,
   optionsByColumn,
+  colorsByColumn,
   people,
   onSaveOptions,
+  onSaveColor,
   onSavePeople,
   onClose,
 }: {
   view: ViewDef;
   optionsByColumn: { [columnKey: string]: string[] };
+  colorsByColumn: { [columnKey: string]: { [value: string]: string } };
   people: string[];
   onSaveOptions: (columnKey: string, options: string[]) => void;
+  onSaveColor: (columnKey: string, value: string, hex: string | null) => void;
   onSavePeople: (people: string[]) => void;
   onClose: () => void;
 }) {
   const selectCols = view.columns.filter((c) => c.type === "select");
   const [drafts, setDrafts] = useState<{ [key: string]: string }>({});
+  const [drag, setDrag] = useState<{ col: string; idx: number } | null>(null);
+  const [palette, setPalette] = useState<string | null>(null); // `${col}::${value}`
 
   function addOption(columnKey: string) {
     const val = (drafts[columnKey] ?? "").trim();
@@ -35,8 +41,16 @@ export default function CustomizeModal({
   }
 
   function removeOption(columnKey: string, value: string) {
-    const current = optionsByColumn[columnKey] ?? [];
-    onSaveOptions(columnKey, current.filter((o) => o !== value));
+    onSaveOptions(columnKey, (optionsByColumn[columnKey] ?? []).filter((o) => o !== value));
+  }
+
+  function dropOption(columnKey: string, targetIdx: number) {
+    if (!drag || drag.col !== columnKey) return;
+    const list = [...(optionsByColumn[columnKey] ?? [])];
+    const [moved] = list.splice(drag.idx, 1);
+    list.splice(targetIdx, 0, moved);
+    onSaveOptions(columnKey, list);
+    setDrag(null);
   }
 
   function addPerson() {
@@ -44,10 +58,6 @@ export default function CustomizeModal({
     if (!val || people.includes(val)) return;
     onSavePeople([...people, val]);
     setDrafts((d) => ({ ...d, __people: "" }));
-  }
-
-  function removePerson(name: string) {
-    onSavePeople(people.filter((p) => p !== name));
   }
 
   return (
@@ -60,26 +70,71 @@ export default function CustomizeModal({
           </button>
         </div>
         <p className="modal-sub">
-          Tailor this board to the launch. Add or remove dropdown choices and manage owners —
-          changes save automatically and apply only to this board.
+          Drag choices to reorder, click the swatch to recolor, or add/remove choices and owners.
+          Changes save automatically and apply only to this board.
         </p>
 
         <div className="modal-body">
           {selectCols.map((col) => {
             const opts = optionsByColumn[col.key] ?? [];
+            const colors = colorsByColumn[col.key] ?? {};
             return (
               <section className="cz-section" key={col.key}>
                 <h3>{col.label}</h3>
                 <div className="cz-chips">
                   {opts.length === 0 && <span className="cz-empty">No choices yet</span>}
-                  {opts.map((o) => (
-                    <span className="cz-chip" key={o} style={{ background: chipColor(o) }}>
-                      {o || "(blank)"}
-                      <button onClick={() => removeOption(col.key, o)} title="Remove">
-                        ×
-                      </button>
-                    </span>
-                  ))}
+                  {opts.map((o, i) => {
+                    const bg = colors[o] || chipColor(o);
+                    const popId = `${col.key}::${o}`;
+                    return (
+                      <span
+                        key={o}
+                        className="cz-chip"
+                        style={{ background: bg }}
+                        draggable
+                        onDragStart={() => setDrag({ col: col.key, idx: i })}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={() => dropOption(col.key, i)}
+                        title="Drag to reorder"
+                      >
+                        <span className="cz-grip">⠿</span>
+                        {o || "(blank)"}
+                        <button
+                          className="cz-swatch"
+                          title="Change color"
+                          onClick={() => setPalette(palette === popId ? null : popId)}
+                        >
+                          ▾
+                        </button>
+                        <button onClick={() => removeOption(col.key, o)} title="Remove">
+                          ×
+                        </button>
+                        {palette === popId && (
+                          <span className="cz-palette" onClick={(e) => e.stopPropagation()}>
+                            {PALETTE.map((hex) => (
+                              <button
+                                key={hex}
+                                style={{ background: hex }}
+                                onClick={() => {
+                                  onSaveColor(col.key, o, hex);
+                                  setPalette(null);
+                                }}
+                              />
+                            ))}
+                            <button
+                              className="cz-auto"
+                              onClick={() => {
+                                onSaveColor(col.key, o, null);
+                                setPalette(null);
+                              }}
+                            >
+                              Auto
+                            </button>
+                          </span>
+                        )}
+                      </span>
+                    );
+                  })}
                 </div>
                 <div className="cz-add">
                   <input
@@ -105,7 +160,7 @@ export default function CustomizeModal({
               {people.map((p) => (
                 <span className="cz-chip person" key={p}>
                   {p}
-                  <button onClick={() => removePerson(p)} title="Remove">
+                  <button onClick={() => onSavePeople(people.filter((x) => x !== p))} title="Remove">
                     ×
                   </button>
                 </span>

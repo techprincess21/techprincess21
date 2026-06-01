@@ -14,4 +14,7 @@ export interface DataAdapter {
     fields: { [key: string]: FieldValue }
   ): Promise<Record>;
   remove(collection: CollectionId, id: string): Promise<void>;
+  // Persist a new row order. `ids` lists records in the desired order; any
+  // records not named keep their relative order at the end.
+  reorder(collection: CollectionId, ids: string[]): Promise<void>;
 }

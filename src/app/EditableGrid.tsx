@@ -13,14 +13,22 @@ const PEOPLE_LIST_ID = "people-options";
 export default function EditableGrid({
   view,
   optionOverrides = {},
+  columnOrder = [],
+  colorOverrides = {},
   people = [],
   onSaveOptions,
+  onSaveColumns,
+  onSaveColor,
   onSavePeople,
 }: {
   view: ViewDef;
   optionOverrides?: { [columnKey: string]: string[] };
+  columnOrder?: string[];
+  colorOverrides?: { [columnKey: string]: { [value: string]: string } };
   people?: string[];
   onSaveOptions?: (columnKey: string, options: string[]) => void;
+  onSaveColumns?: (keys: string[]) => void;
+  onSaveColor?: (columnKey: string, value: string, hex: string | null) => void;
   onSavePeople?: (people: string[]) => void;
 }) {
   const [records, setRecords] = useState<Record[] | null>(null);
@@ -37,9 +45,29 @@ export default function EditableGrid({
   // Customize panel
   const [customizeOpen, setCustomizeOpen] = useState(false);
 
+  // Drag-and-drop state
+  const [dragRow, setDragRow] = useState<string | null>(null);
+  const [dragCol, setDragCol] = useState<string | null>(null);
+
   // Effective dropdown options for a column: per-board overrides win over the
   // code defaults.
   const effOptions = (col: ColumnDef): string[] => optionOverrides[col.key] ?? col.options ?? [];
+
+  // Columns in the user's saved order (new columns appended).
+  const columns = useMemo(() => {
+    if (!columnOrder.length) return view.columns;
+    const byKey = new Map(view.columns.map((c) => [c.key, c]));
+    const out: ColumnDef[] = [];
+    for (const k of columnOrder) {
+      const c = byKey.get(k);
+      if (c) {
+        out.push(c);
+        byKey.delete(k);
+      }
+    }
+    for (const c of byKey.values()) out.push(c);
+    return out;
+  }, [columnOrder, view.columns]);
 
   useEffect(() => {
     let cancelled = false;
@@ -134,10 +162,72 @@ export default function EditableGrid({
     });
   }
 
+  // Move a dragged row before another row, or to the end of a group. If it
+  // lands in a different group, adopt that group's value (e.g. change Phase).
+  function moveRow(draggedId: string, opts: { beforeId?: string; groupValue?: string }) {
+    if (!records) return;
+    const copy = records.map((r) => ({ ...r, fields: { ...r.fields } }));
+    const di = copy.findIndex((r) => r.id === draggedId);
+    if (di < 0) return;
+    const [dragged] = copy.splice(di, 1);
+
+    let groupChanged = false;
+    if (view.groupBy) {
+      let newGroup: string | undefined;
+      if (opts.beforeId != null) {
+        const t = copy.find((r) => r.id === opts.beforeId);
+        if (t) newGroup = String(t.fields[view.groupBy] ?? "");
+      } else if (opts.groupValue != null) {
+        newGroup = opts.groupValue;
+      }
+      if (newGroup !== undefined && String(dragged.fields[view.groupBy] ?? "") !== newGroup) {
+        dragged.fields[view.groupBy] = newGroup;
+        groupChanged = true;
+      }
+    }
+
+    let insertAt = copy.length;
+    if (opts.beforeId != null) {
+      const ti = copy.findIndex((r) => r.id === opts.beforeId);
+      insertAt = ti < 0 ? copy.length : ti;
+    } else if (opts.groupValue != null && view.groupBy) {
+      let lastIdx = -1;
+      copy.forEach((r, i) => {
+        if (String(r.fields[view.groupBy!] ?? "") === opts.groupValue) lastIdx = i;
+      });
+      insertAt = lastIdx >= 0 ? lastIdx + 1 : copy.length;
+    }
+    copy.splice(insertAt, 0, dragged);
+    setRecords(copy);
+
+    if (groupChanged && view.groupBy) {
+      fetch(`/api/${view.collection}/${dragged.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fields: { [view.groupBy]: dragged.fields[view.groupBy] } }),
+      });
+    }
+    fetch(`/api/${view.collection}/reorder`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids: copy.map((r) => r.id) }),
+    });
+  }
+
+  function moveColumn(draggedKey: string, beforeKey: string) {
+    if (!onSaveColumns || draggedKey === beforeKey) return;
+    const keys = columns.map((c) => c.key);
+    const di = keys.indexOf(draggedKey);
+    keys.splice(di, 1);
+    const ti = keys.indexOf(beforeKey);
+    keys.splice(ti < 0 ? keys.length : ti, 0, draggedKey);
+    onSaveColumns(keys);
+  }
+
   // Columns that support a quick filter (status chips + people).
   const filterCols = useMemo(
-    () => view.columns.filter((c) => c.type === "select" || c.type === "person"),
-    [view.columns]
+    () => columns.filter((c) => c.type === "select" || c.type === "person"),
+    [columns]
   );
 
   // Build the option list for each filterable column from the live data.
@@ -191,7 +281,7 @@ export default function EditableGrid({
 
   if (records === null) return <div className="loading">Loading {view.label}…</div>;
 
-  const dataCols = view.columns.length;
+  const dataCols = columns.length;
   const totalShown = filtered.length;
   const totalAll = records.length;
 
@@ -262,16 +352,16 @@ export default function EditableGrid({
         ))}
       </datalist>
 
-      {customizeOpen && onSaveOptions && onSavePeople && (
+      {customizeOpen && onSaveOptions && onSaveColor && onSavePeople && (
         <CustomizeModal
           view={view}
           optionsByColumn={Object.fromEntries(
-            view.columns
-              .filter((c) => c.type === "select")
-              .map((c) => [c.key, effOptions(c)])
+            columns.filter((c) => c.type === "select").map((c) => [c.key, effOptions(c)])
           )}
+          colorsByColumn={colorOverrides}
           people={people}
           onSaveOptions={onSaveOptions}
+          onSaveColor={onSaveColor}
           onSavePeople={onSavePeople}
           onClose={() => setCustomizeOpen(false)}
         />
@@ -291,6 +381,11 @@ export default function EditableGrid({
                     className="group-header"
                     style={{ color }}
                     onClick={() => toggleGroup(g.key)}
+                    onDragOver={(e) => dragRow && e.preventDefault()}
+                    onDrop={() => {
+                      if (dragRow) moveRow(dragRow, { groupValue: g.key });
+                      setDragRow(null);
+                    }}
                   >
                     <span className={`caret ${isCollapsed ? "closed" : ""}`}>▾</span>
                     <span className="group-title">{g.label || "Untitled"}</span>
@@ -303,9 +398,22 @@ export default function EditableGrid({
                     <table className="grid">
                       <thead>
                         <tr>
+                          <th className="handle-col" />
                           <th className="rail-col" style={{ background: color }} />
-                          {view.columns.map((c) => (
-                            <th key={c.key} style={{ minWidth: c.width }}>
+                          {columns.map((c) => (
+                            <th
+                              key={c.key}
+                              style={{ minWidth: c.width }}
+                              className={dragCol === c.key ? "col-dragging" : ""}
+                              draggable={Boolean(onSaveColumns)}
+                              onDragStart={() => setDragCol(c.key)}
+                              onDragOver={(e) => dragCol && e.preventDefault()}
+                              onDrop={() => {
+                                if (dragCol) moveColumn(dragCol, c.key);
+                                setDragCol(null);
+                              }}
+                              title={onSaveColumns ? "Drag to reorder column" : undefined}
+                            >
                               {c.label}
                             </th>
                           ))}
@@ -314,15 +422,33 @@ export default function EditableGrid({
                       </thead>
                       <tbody>
                         {g.records.map((rec) => (
-                          <tr key={rec.id}>
+                          <tr
+                            key={rec.id}
+                            className={dragRow === rec.id ? "row-dragging" : ""}
+                            onDragOver={(e) => dragRow && e.preventDefault()}
+                            onDrop={() => {
+                              if (dragRow && dragRow !== rec.id) moveRow(dragRow, { beforeId: rec.id });
+                              setDragRow(null);
+                            }}
+                          >
+                            <td
+                              className="drag-handle"
+                              draggable
+                              onDragStart={() => setDragRow(rec.id)}
+                              onDragEnd={() => setDragRow(null)}
+                              title="Drag to reorder / move between groups"
+                            >
+                              ⠿
+                            </td>
                             <td className="rail" style={{ background: color }} />
-                            {view.columns.map((col) => (
+                            {columns.map((col) => (
                               <td key={col.key} className={`cell cell-${col.type}`}>
                                 <Cell
                                   col={col}
                                   value={rec.fields[col.key] ?? null}
                                   jiraKey={rec.jiraKey ?? null}
                                   options={effOptions(col)}
+                                  colorMap={colorOverrides[col.key]}
                                   saving={savingCell === `${rec.id}:${col.key}`}
                                   onCommit={(v) => saveField(rec, col.key, v)}
                                 />
@@ -340,6 +466,7 @@ export default function EditableGrid({
                           </tr>
                         ))}
                         <tr className="add-row">
+                          <td className="handle-col" />
                           <td className="rail" style={{ background: color, opacity: 0.4 }} />
                           <td colSpan={dataCols + 1}>
                             <button className="add-item" onClick={() => addRow(g.key)}>
@@ -365,6 +492,7 @@ function Cell({
   value,
   jiraKey,
   options,
+  colorMap,
   saving,
   onCommit,
 }: {
@@ -372,6 +500,7 @@ function Cell({
   value: FieldValue;
   jiraKey: string | null;
   options?: string[];
+  colorMap?: { [value: string]: string };
   saving: boolean;
   onCommit: (v: FieldValue) => void;
 }) {
@@ -396,7 +525,7 @@ function Cell({
 
   if (col.type === "select") {
     const opts = options ?? col.options ?? [];
-    const color = chipColor(draft);
+    const color = (colorMap && colorMap[draft]) || chipColor(draft);
     return (
       <div className="status-chip" style={{ background: color }}>
         <select
