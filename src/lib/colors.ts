@@ -34,8 +34,26 @@ const GREY = "#c4c4c4";
 // (Done = green, Stuck/High = red, Working/Medium = orange, etc.).
 const SEMANTIC: { [value: string]: string } = {
   complete: "#00c875",
+  completed: "#00c875",
   done: "#00c875",
   current: "#00c875",
+  // launch workback statuses
+  "in progress - on track": "#0086c0",
+  "in progress - review": "#a25ddc",
+  ongoing: "#fdab3d",
+  scheduled: "#579bfc",
+  "not started": "#c4c4c4",
+  // launch moment tags
+  "pre-la": "#9aadbd",
+  la: "#579bfc",
+  "pre-launch": "#9aadbd",
+  cko: "#a25ddc",
+  "pre-cko": "#c9b3ec",
+  "post-cko": "#784bd1",
+  ga: "#00c875",
+  "pre-ga": "#9cd326",
+  launch: "#ff642e",
+  "post launch": "#0086c0",
   "with marketing strat": "#fdab3d",
   "recommendations created": "#a25ddc",
   planning: "#579bfc",
