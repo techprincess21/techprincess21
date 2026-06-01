@@ -7,7 +7,11 @@ import type { DataAdapter } from "./types";
 // In-memory adapter backed by a JSON file so edits survive across requests and
 // dev-server reloads. This stands in for Jira until real access is available.
 
-const DATA_DIR = path.join(process.cwd(), ".data");
+// Persist under .data locally. On read-only/serverless filesystems (e.g.
+// Vercel), fall back to a writable temp dir; if even that fails, we keep data
+// in memory for the life of the process (resets on cold start — fine for a
+// demo, and a non-issue once the Jira adapter is live).
+const DATA_DIR = process.env.DATA_DIR || path.join(process.cwd(), ".data");
 const DB_FILE = path.join(DATA_DIR, "db.json");
 
 type Db = { [K in CollectionId]: Record[] };
@@ -29,8 +33,12 @@ async function load(): Promise<Db> {
 
 async function persist(): Promise<void> {
   if (!cache) return;
-  await fs.mkdir(DATA_DIR, { recursive: true });
-  await fs.writeFile(DB_FILE, JSON.stringify(cache, null, 2), "utf8");
+  try {
+    await fs.mkdir(DATA_DIR, { recursive: true });
+    await fs.writeFile(DB_FILE, JSON.stringify(cache, null, 2), "utf8");
+  } catch {
+    // Read-only filesystem: keep working from the in-memory cache.
+  }
 }
 
 function newId(): string {

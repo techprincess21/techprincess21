@@ -37,6 +37,28 @@ export const VIEWS: ViewDef[] = [
     ],
   },
   {
+    id: "launch",
+    label: "Product Launches",
+    collection: "launch",
+    description:
+      "A second template on the exact same engine — no new code, just a different column config. This is the launch-tracking spreadsheet.",
+    groupBy: "status",
+    defaults: { status: "On Track", tier: "Tier 2", quarter: "Q2" },
+    columns: [
+      { key: "jiraKey", label: "Jira", type: "jira", width: 110, readOnly: true },
+      { key: "launchName", label: "Launch", type: "longtext", width: 280 },
+      { key: "status", label: "Status", type: "select", options: ["On Track", "At Risk", "Delayed", "Launched"], width: 150 },
+      { key: "tier", label: "Tier", type: "select", options: ["Tier 1", "Tier 2", "Tier 3"], width: 110 },
+      { key: "quarter", label: "Qtr", type: "select", options: ["Q1", "Q2", "Q3", "Q4"], width: 80 },
+      { key: "targetDate", label: "Target Date", type: "text", width: 130 },
+      { key: "gtmLead", label: "GTM Lead", type: "person", width: 150 },
+      { key: "pmm", label: "PMM", type: "person", width: 150 },
+      { key: "segment", label: "Segment", type: "select", options: ["Enterprise", "Commercial", "All"], width: 130 },
+      { key: "blog", label: "Blog", type: "select", options: ["Planned", "Drafting", "Published"], width: 130 },
+      { key: "pressRelease", label: "Press", type: "select", options: ["Yes", "No", "N/A"], width: 100 },
+    ],
+  },
+  {
     id: "okr",
     label: "OKRs",
     collection: "okr",

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ColumnDef, FieldValue, Record, ViewDef } from "@/lib/types";
 import { avatarColor, chipColor, groupColor, initials, splitPeople } from "@/lib/colors";
+import MultiSelect from "./MultiSelect";
 
 const JIRA_BASE = "https://taktak.atlassian.net";
 
@@ -10,6 +11,10 @@ export default function EditableGrid({ view }: { view: ViewDef }) {
   const [records, setRecords] = useState<Record[] | null>(null);
   const [savingCell, setSavingCell] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+
+  // Filtering state
+  const [search, setSearch] = useState("");
+  const [filters, setFilters] = useState<{ [key: string]: string[] }>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -25,6 +30,13 @@ export default function EditableGrid({ view }: { view: ViewDef }) {
       cancelled = true;
     };
   }, [view.collection]);
+
+  // Reset filters when switching boards.
+  useEffect(() => {
+    setSearch("");
+    setFilters({});
+    setCollapsed(new Set());
+  }, [view.id]);
 
   async function saveField(record: Record, key: string, value: FieldValue) {
     if (record.fields[key] === value) return;
@@ -48,7 +60,8 @@ export default function EditableGrid({ view }: { view: ViewDef }) {
 
   async function addRow(groupValue?: string) {
     const fields = { ...(view.defaults ?? {}) };
-    if (view.groupBy && groupValue !== undefined) fields[view.groupBy] = groupValue;
+    if (view.groupBy && groupValue !== undefined && groupValue !== "__all__")
+      fields[view.groupBy] = groupValue;
     const res = await fetch(`/api/${view.collection}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -71,96 +84,192 @@ export default function EditableGrid({ view }: { view: ViewDef }) {
     });
   }
 
-  const groups = useMemo(() => groupRecords(records ?? [], view.groupBy), [records, view.groupBy]);
+  // Columns that support a quick filter (status chips + people).
+  const filterCols = useMemo(
+    () => view.columns.filter((c) => c.type === "select" || c.type === "person"),
+    [view.columns]
+  );
+
+  // Build the option list for each filterable column from the live data.
+  const optionsByCol = useMemo(() => {
+    const out: { [key: string]: string[] } = {};
+    for (const col of filterCols) {
+      const set = new Set<string>(col.type === "select" ? col.options ?? [] : []);
+      for (const r of records ?? []) {
+        const raw = r.fields[col.key];
+        const val = raw == null ? "" : String(raw);
+        if (col.type === "person") splitPeople(val).forEach((p) => set.add(p));
+        else if (val) set.add(val);
+      }
+      out[col.key] = [...set].filter(Boolean).sort();
+    }
+    return out;
+  }, [filterCols, records]);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return (records ?? []).filter((rec) => {
+      if (q) {
+        const hay = Object.values(rec.fields)
+          .map((v) => (v == null ? "" : String(v)))
+          .join(" ")
+          .toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      for (const col of filterCols) {
+        const sel = filters[col.key];
+        if (!sel || sel.length === 0) continue;
+        const raw = rec.fields[col.key];
+        const val = raw == null ? "" : String(raw);
+        if (col.type === "person") {
+          if (!splitPeople(val).some((p) => sel.includes(p))) return false;
+        } else if (!sel.includes(val)) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [records, search, filters, filterCols]);
+
+  const activeCount =
+    (search.trim() ? 1 : 0) + Object.values(filters).filter((s) => s.length > 0).length;
+
+  const groups = useMemo(() => groupRecords(filtered, view.groupBy), [filtered, view.groupBy]);
 
   if (records === null) return <div className="loading">Loading {view.label}…</div>;
 
-  // total columns: rail + data columns + delete
   const dataCols = view.columns.length;
+  const totalShown = filtered.length;
+  const totalAll = records.length;
 
   return (
     <div>
       <p className="view-desc">{view.description}</p>
-      <div className="toolbar">
+
+      <div className="board-toolbar">
         <button className="btn btn-primary" onClick={() => addRow(undefined)}>
           New item
         </button>
+
+        <div className="search-box">
+          <span className="search-icon">⌕</span>
+          <input
+            value={search}
+            placeholder="Search this board"
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          {search && (
+            <button className="search-clear" onClick={() => setSearch("")} title="Clear search">
+              ×
+            </button>
+          )}
+        </div>
+
+        {filterCols.map((col) => (
+          <MultiSelect
+            key={col.key}
+            label={col.label}
+            options={optionsByCol[col.key] ?? []}
+            selected={filters[col.key] ?? []}
+            onChange={(next) => setFilters((f) => ({ ...f, [col.key]: next }))}
+          />
+        ))}
+
+        {activeCount > 0 && (
+          <button
+            className="clear-all"
+            onClick={() => {
+              setSearch("");
+              setFilters({});
+            }}
+          >
+            Clear all
+          </button>
+        )}
+
+        <span className="result-count">
+          {totalShown === totalAll ? `${totalAll} items` : `${totalShown} of ${totalAll}`}
+        </span>
       </div>
 
-      <div className="boards">
-        {groups.map((g, gi) => {
-          const color = view.groupBy ? groupColor(gi) : "#0086c0";
-          const isCollapsed = collapsed.has(g.key);
-          return (
-            <div className="board" key={g.key}>
-              {view.groupBy && (
-                <button
-                  className="group-header"
-                  style={{ color }}
-                  onClick={() => toggleGroup(g.key)}
-                >
-                  <span className={`caret ${isCollapsed ? "closed" : ""}`}>▾</span>
-                  <span className="group-title">{g.label || "Untitled"}</span>
-                  <span className="group-count">{g.records.length}</span>
-                </button>
-              )}
+      {totalShown === 0 ? (
+        <div className="results-empty">No items match your filters.</div>
+      ) : (
+        <div className="boards">
+          {groups.map((g, gi) => {
+            const color = view.groupBy ? groupColor(gi) : "#0086c0";
+            const isCollapsed = collapsed.has(g.key);
+            return (
+              <div className="board" key={g.key}>
+                {view.groupBy && (
+                  <button
+                    className="group-header"
+                    style={{ color }}
+                    onClick={() => toggleGroup(g.key)}
+                  >
+                    <span className={`caret ${isCollapsed ? "closed" : ""}`}>▾</span>
+                    <span className="group-title">{g.label || "Untitled"}</span>
+                    <span className="group-count">{g.records.length}</span>
+                  </button>
+                )}
 
-              {!isCollapsed && (
-                <div className="grid-wrap">
-                  <table className="grid">
-                    <thead>
-                      <tr>
-                        <th className="rail-col" style={{ background: color }} />
-                        {view.columns.map((c) => (
-                          <th key={c.key} style={{ minWidth: c.width }}>
-                            {c.label}
-                          </th>
-                        ))}
-                        <th className="del-col" />
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {g.records.map((rec) => (
-                        <tr key={rec.id}>
-                          <td className="rail" style={{ background: color }} />
-                          {view.columns.map((col) => (
-                            <td key={col.key} className={`cell cell-${col.type}`}>
-                              <Cell
-                                col={col}
-                                value={rec.fields[col.key] ?? null}
-                                jiraKey={rec.jiraKey ?? null}
-                                saving={savingCell === `${rec.id}:${col.key}`}
-                                onCommit={(v) => saveField(rec, col.key, v)}
-                              />
-                            </td>
+                {!isCollapsed && (
+                  <div className="grid-wrap">
+                    <table className="grid">
+                      <thead>
+                        <tr>
+                          <th className="rail-col" style={{ background: color }} />
+                          {view.columns.map((c) => (
+                            <th key={c.key} style={{ minWidth: c.width }}>
+                              {c.label}
+                            </th>
                           ))}
-                          <td className="del-col">
-                            <button
-                              className="row-del"
-                              title="Delete item"
-                              onClick={() => removeRow(rec.id)}
-                            >
-                              ×
+                          <th className="del-col" />
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {g.records.map((rec) => (
+                          <tr key={rec.id}>
+                            <td className="rail" style={{ background: color }} />
+                            {view.columns.map((col) => (
+                              <td key={col.key} className={`cell cell-${col.type}`}>
+                                <Cell
+                                  col={col}
+                                  value={rec.fields[col.key] ?? null}
+                                  jiraKey={rec.jiraKey ?? null}
+                                  saving={savingCell === `${rec.id}:${col.key}`}
+                                  onCommit={(v) => saveField(rec, col.key, v)}
+                                />
+                              </td>
+                            ))}
+                            <td className="del-col">
+                              <button
+                                className="row-del"
+                                title="Delete item"
+                                onClick={() => removeRow(rec.id)}
+                              >
+                                ×
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                        <tr className="add-row">
+                          <td className="rail" style={{ background: color, opacity: 0.4 }} />
+                          <td colSpan={dataCols + 1}>
+                            <button className="add-item" onClick={() => addRow(g.key)}>
+                              + Add item
                             </button>
                           </td>
                         </tr>
-                      ))}
-                      <tr className="add-row">
-                        <td className="rail" style={{ background: color, opacity: 0.4 }} />
-                        <td colSpan={dataCols + 1}>
-                          <button className="add-item" onClick={() => addRow(g.key)}>
-                            + Add item
-                          </button>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
