@@ -24,9 +24,9 @@ export async function PATCH(
   const record = await adapter.update(params.collection, params.id, fields);
 
   // Fire any workflow automations triggered by this change.
-  const { record: finalRecord, created } = await runPlaybooks(adapter, params.collection, record);
+  const { record: finalRecord, created, stage } = await runPlaybooks(adapter, params.collection, record);
   if (created.length > 0) {
-    return NextResponse.json({ record: finalRecord, automation: { created } });
+    return NextResponse.json({ record: finalRecord, automation: { created, stage } });
   }
   return NextResponse.json({ record: finalRecord });
 }

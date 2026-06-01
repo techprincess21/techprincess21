@@ -114,15 +114,24 @@ A couple of honest technical notes so there are no surprises:
 
 This is the part that turns a prettier spreadsheet into a force multiplier.
 
-A **playbook** encodes a runbook — e.g. *"how to set up a webinar"* — as a rule:
+A **playbook** encodes a real runbook — e.g. the *Demand Gen Webinar Process* —
+as a set of **stages**. The trigger is two conditions: **Work Type = Webinar**
+AND the deliverable **entering a status**:
 
-> When a deliverable tagged **Webinar** reaches status **Scheduled**, automatically
-> open three tickets: a **Design** ticket, a **MOPS** campaign ticket, and a
-> **Content/Social** promotion ticket — each pre-filled and routed to the right
-> team's project.
+> **On "Scheduled":** open the **Webinar setup**, **Design (creative)**,
+> **MOPS (Marketo)**, and **Content/Social (organic + field)** tickets.
+> **On "Completed":** open the **Post-event wrap-up** ticket (recording, report
+> to sales, BrightTalk on-demand, newsletter).
 
-The person running the launch no longer has to *know* that a webinar needs three
-teams and three tickets. They flag the work type; the workflow knows the rest.
+Each ticket is pre-filled from the runbook with the right **assignees** (Kaycee →
+creative, Hannah → social, Mickey → website/on-demand, Marie Hill's team →
+field), a **due-date hint** (abstract 3.5 wks prior; emails 2wk/1wk/1day), and a
+**checklist** of the actual sub-steps (asset sizes, UTM list, etc.).
+
+The person running the launch no longer has to *know* that a webinar needs four
+teams and a dozen sub-steps. They flag the work type; the workflow knows the
+rest. Firing is **idempotent per stage**, so a status bouncing around never
+double-opens tickets.
 
 You can see this live on the **⚡ Automations** tab. Flag a deliverable on the
 Launch Plan as *Webinar* and set it to *Scheduled* — the tickets appear,

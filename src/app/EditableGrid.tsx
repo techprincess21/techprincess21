@@ -127,8 +127,11 @@ export default function EditableGrid({
       }
       if (data?.automation?.created?.length) {
         const c = data.automation.created;
+        const stage = data.automation.stage ? ` (${data.automation.stage})` : "";
         setToast(
-          `⚡ Webinar playbook opened ${c.length} tickets: ${c.map((t: { key: string }) => t.key).join(", ")}`
+          `⚡ Webinar playbook${stage} opened ${c.length} tickets: ${c
+            .map((t: { key: string }) => t.key)
+            .join(", ")}`
         );
       }
     } finally {

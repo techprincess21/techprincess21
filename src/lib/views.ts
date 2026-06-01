@@ -91,10 +91,13 @@ export const VIEWS: ViewDef[] = [
     defaults: { status: "To Do" },
     columns: [
       { key: "key", label: "Jira", type: "jira", width: 120, readOnly: true },
-      { key: "summary", label: "Summary", type: "longtext", width: 400 },
-      { key: "status", label: "Status", type: "select", options: ["To Do", "In Progress", "Done"], width: 150 },
-      { key: "team", label: "Team", type: "select", options: ["Design", "Marketing Ops", "Content / Social"], width: 180 },
-      { key: "sourceDeliverable", label: "From Deliverable", type: "text", width: 300, readOnly: true },
+      { key: "summary", label: "Summary", type: "longtext", width: 320 },
+      { key: "status", label: "Status", type: "select", options: ["To Do", "In Progress", "Done"], width: 140 },
+      { key: "team", label: "Team", type: "select", options: ["Demand Gen", "Design", "Marketing Ops", "Content / Social"], width: 160 },
+      { key: "assignee", label: "Assignee", type: "person", width: 200 },
+      { key: "due", label: "Timing", type: "text", width: 240, readOnly: true },
+      { key: "details", label: "Checklist", type: "text", width: 420, readOnly: true },
+      { key: "sourceDeliverable", label: "From Deliverable", type: "text", width: 240, readOnly: true },
     ],
   },
   {
