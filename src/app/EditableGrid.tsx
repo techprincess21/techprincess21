@@ -375,7 +375,16 @@ export default function EditableGrid({
       ) : (
         <div className="boards">
           {groups.map((g, gi) => {
-            const color = view.groupBy ? groupColor(gi) : "#0086c0";
+            // When grouping by a colored dropdown (e.g. Stage, Team), use that
+            // value's chip color so the group bar matches the chips — and the
+            // Customize panel. For non-select group-bys (e.g. Phase), fall back
+            // to a rotating palette.
+            const groupByCol = columns.find((c) => c.key === view.groupBy);
+            const color = !view.groupBy
+              ? "#0086c0"
+              : groupByCol?.type === "select"
+                ? colorOverrides[view.groupBy]?.[g.key] || chipColor(g.key)
+                : groupColor(gi);
             const isCollapsed = collapsed.has(g.key);
             return (
               <div className="board" key={g.key}>
