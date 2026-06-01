@@ -4,8 +4,6 @@ import type { ViewDef } from "@/lib/types";
 // columns to show, how to group, and the defaults for new rows. This is the
 // thing teams will eventually customize per project.
 
-const OWNERS = ["Mickey", "Nate", "Alex", "Bill", "Felicia", "Desi", "Carlo", "Judith", "Holly", "Sabrina"];
-
 const STAGES = ["Planning", "Recommendations Created", "With Marketing Strat", "Complete"];
 
 export const VIEWS: ViewDef[] = [
@@ -24,7 +22,7 @@ export const VIEWS: ViewDef[] = [
       { key: "topic", label: "Topic", type: "text", width: 200 },
       { key: "subtopic", label: "Subtopic", type: "text", width: 160 },
       { key: "stage", label: "Stage", type: "select", options: STAGES, width: 180 },
-      { key: "owner", label: "Owner", type: "text", width: 120 },
+      { key: "owner", label: "Owner", type: "person", width: 140 },
       { key: "type", label: "Type", type: "select", options: ["Core", "Campaign", "Visibility"], width: 120 },
       { key: "format", label: "Format", type: "select", options: ["Listicle", "Long Form", "Blog"], width: 120 },
       { key: "contentType", label: "Content", type: "select", options: ["Blog", "Resources"], width: 110 },
@@ -49,7 +47,7 @@ export const VIEWS: ViewDef[] = [
       { key: "krNum", label: "KR #", type: "text", width: 70 },
       { key: "keyResult", label: "Key Result", type: "longtext", width: 380 },
       { key: "priority", label: "Priority", type: "select", options: ["P0", "P1", "P2"], width: 90 },
-      { key: "owner", label: "Owner", type: "text", width: 120 },
+      { key: "owner", label: "Owner", type: "person", width: 140 },
       { key: "startValue", label: "Start", type: "number", width: 90 },
       { key: "targetValue", label: "Target", type: "number", width: 90 },
       { key: "expectedValue", label: "Expected", type: "number", width: 100 },
@@ -65,7 +63,7 @@ export const VIEWS: ViewDef[] = [
     groupBy: "quarter",
     defaults: { quarter: "Q1" },
     columns: [
-      { key: "owner", label: "Owner", type: "select", options: OWNERS, width: 140 },
+      { key: "owner", label: "Owner", type: "person", width: 160 },
       { key: "item", label: "Committed Item", type: "longtext", width: 460 },
     ],
   },
@@ -77,8 +75,8 @@ export const VIEWS: ViewDef[] = [
     defaults: {},
     columns: [
       { key: "topic", label: "Content Topic", type: "text", width: 320 },
-      { key: "primaryPMM", label: "Primary PMM", type: "select", options: OWNERS, width: 160 },
-      { key: "secondaryPMM", label: "Secondary PMM", type: "select", options: ["", ...OWNERS], width: 160 },
+      { key: "primaryPMM", label: "Primary PMM", type: "person", width: 180 },
+      { key: "secondaryPMM", label: "Secondary PMM", type: "person", width: 180 },
     ],
   },
 ];

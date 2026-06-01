@@ -21,7 +21,14 @@ export interface Record {
   fields: { [key: string]: FieldValue };
 }
 
-export type ColumnType = "text" | "longtext" | "number" | "select" | "url" | "jira";
+export type ColumnType =
+  | "text"
+  | "longtext"
+  | "number"
+  | "select"
+  | "url"
+  | "jira"
+  | "person";
 
 export interface ColumnDef {
   key: string;
