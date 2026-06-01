@@ -5,6 +5,14 @@ working spreadsheet (content pipeline, OKRs, quarterly plan, topic owners) as
 editable, filterable grids, with the goal of layering Jira's workflow muscle
 (assign, watch, remind, automate) behind a friendly UI.
 
+## Docs
+
+- **[docs/WALKTHROUGH.md](docs/WALKTHROUGH.md)** — non-technical tour to share
+  with the team (the pitch + how to use the app).
+- **[docs/HOW-IT-WORKS.md](docs/HOW-IT-WORKS.md)** — plain-language explanation
+  of the architecture and what it takes to go live with Jira.
+- This README — technical setup, run, and deploy steps.
+
 ## Status
 
 **Milestone 1 — editable grid with write-back (mock-backed).** All four tabs
