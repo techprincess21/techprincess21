@@ -8,6 +8,7 @@
 export type CollectionId =
   | "content" // the content-pipeline tab (the team's primary working surface)
   | "launch" // product/feature launch tracker (a second template on the same engine)
+  | "tickets" // cross-team tickets opened by workflow automations
   | "okr" // objectives & key results
   | "quarterPlan" // quarter x owner planning grid
   | "topicOwners"; // topic -> primary/secondary PMM ownership

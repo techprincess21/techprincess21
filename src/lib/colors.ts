@@ -43,6 +43,11 @@ const SEMANTIC: { [value: string]: string } = {
   ongoing: "#fdab3d",
   scheduled: "#579bfc",
   "not started": "#c4c4c4",
+  // generated ticket states
+  "to do": "#c4c4c4",
+  "in progress": "#fdab3d",
+  // work types
+  webinar: "#ff5ac4",
   // launch moment tags
   "pre-la": "#9aadbd",
   la: "#579bfc",

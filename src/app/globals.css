@@ -624,3 +624,32 @@ td.cell-select {
   padding: 28px;
   color: var(--muted);
 }
+
+/* Automation toast */
+.toast {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  z-index: 100;
+  background: #1b1f2a;
+  color: #fff;
+  font-weight: 600;
+  padding: 14px 18px;
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
+  max-width: 420px;
+  cursor: pointer;
+  border-left: 4px solid #00c875;
+  animation: toast-in 0.18s ease-out;
+}
+
+@keyframes toast-in {
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}

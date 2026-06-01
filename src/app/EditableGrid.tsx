@@ -16,6 +16,9 @@ export default function EditableGrid({ view }: { view: ViewDef }) {
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<{ [key: string]: string[] }>({});
 
+  // Automation toast (when a workflow playbook opens tickets)
+  const [toast, setToast] = useState<string | null>(null);
+
   useEffect(() => {
     let cancelled = false;
     fetch(`/api/${view.collection}`)
@@ -38,6 +41,13 @@ export default function EditableGrid({ view }: { view: ViewDef }) {
     setCollapsed(new Set());
   }, [view.id]);
 
+  // Auto-dismiss the automation toast.
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 6000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
   async function saveField(record: Record, key: string, value: FieldValue) {
     if (record.fields[key] === value) return;
     const cellId = `${record.id}:${key}`;
@@ -48,11 +58,29 @@ export default function EditableGrid({ view }: { view: ViewDef }) {
         : prev
     );
     try {
-      await fetch(`/api/${view.collection}/${record.id}`, {
+      const res = await fetch(`/api/${view.collection}/${record.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ fields: { [key]: value } }),
       });
+      const data = await res.json().catch(() => null);
+      // Merge any server-side field changes (e.g. autoTickets written by a
+      // playbook) back into local state.
+      if (data?.record?.fields) {
+        setRecords((prev) =>
+          prev
+            ? prev.map((r) =>
+                r.id === record.id ? { ...r, fields: { ...r.fields, ...data.record.fields } } : r
+              )
+            : prev
+        );
+      }
+      if (data?.automation?.created?.length) {
+        const c = data.automation.created;
+        setToast(
+          `⚡ Webinar playbook opened ${c.length} tickets: ${c.map((t: { key: string }) => t.key).join(", ")}`
+        );
+      }
     } finally {
       setSavingCell((c) => (c === cellId ? null : c));
     }
@@ -144,6 +172,11 @@ export default function EditableGrid({ view }: { view: ViewDef }) {
 
   return (
     <div>
+      {toast && (
+        <div className="toast" role="status" onClick={() => setToast(null)}>
+          {toast}
+        </div>
+      )}
       <p className="view-desc">{view.description}</p>
 
       <div className="board-toolbar">
@@ -294,9 +327,12 @@ function Cell({
   }, [value]);
 
   if (col.type === "jira") {
-    return jiraKey ? (
-      <a className="jira-key" href={`${JIRA_BASE}/browse/${jiraKey}`} target="_blank" rel="noreferrer">
-        {jiraKey}
+    // Prefer a key stored in the cell value (generated tickets), else the
+    // record's top-level jiraKey (content/launch items).
+    const key = typeof value === "string" && value ? value : jiraKey;
+    return key ? (
+      <a className="jira-key" href={`${JIRA_BASE}/browse/${key}`} target="_blank" rel="noreferrer">
+        {key}
       </a>
     ) : (
       <span className="jira-key empty">—</span>

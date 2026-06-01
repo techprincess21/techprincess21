@@ -110,6 +110,36 @@ A couple of honest technical notes so there are no surprises:
 
 ---
 
+## Workflow automations ("playbooks") — the real payoff
+
+This is the part that turns a prettier spreadsheet into a force multiplier.
+
+A **playbook** encodes a runbook — e.g. *"how to set up a webinar"* — as a rule:
+
+> When a deliverable tagged **Webinar** reaches status **Scheduled**, automatically
+> open three tickets: a **Design** ticket, a **MOPS** campaign ticket, and a
+> **Content/Social** promotion ticket — each pre-filled and routed to the right
+> team's project.
+
+The person running the launch no longer has to *know* that a webinar needs three
+teams and three tickets. They flag the work type; the workflow knows the rest.
+
+You can see this live on the **⚡ Automations** tab. Flag a deliverable on the
+Launch Plan as *Webinar* and set it to *Scheduled* — the tickets appear,
+grouped by team, and the deliverable shows the ticket keys it opened.
+
+**Today vs. live:**
+- *Today:* the tickets are mock records, so you can demo the fan-out safely.
+- *Live (with Jira):* the exact same playbook definitions become real
+  `POST /issue` calls into each team's Jira project. The rule doesn't change —
+  only the backend behind the adapter does.
+
+**Where the playbooks come from:** today they're authored as a small config
+(`src/lib/playbooks.ts`). The natural next step is *ingestion* — point the app at
+a runbook doc ("How to launch a webinar"), and it drafts the playbook for you to
+approve. That's the bridge from "we wrote it down in a doc nobody reads" to "the
+system does it."
+
 ## The roadmap (where this can go)
 
 1. **Now:** the experience, mock-backed. ✅

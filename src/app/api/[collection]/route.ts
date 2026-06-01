@@ -4,7 +4,7 @@ import type { CollectionId } from "@/lib/types";
 
 export const runtime = "nodejs";
 
-const COLLECTIONS: CollectionId[] = ["content", "launch", "okr", "quarterPlan", "topicOwners"];
+const COLLECTIONS: CollectionId[] = ["content", "launch", "tickets", "okr", "quarterPlan", "topicOwners"];
 
 function isCollection(value: string): value is CollectionId {
   return (COLLECTIONS as string[]).includes(value);

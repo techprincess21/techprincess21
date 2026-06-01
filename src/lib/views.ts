@@ -53,7 +53,15 @@ export const VIEWS: ViewDef[] = [
         options: ["Not Started", "Scheduled", "Ongoing", "In Progress - On Track", "In Progress - Review", "Completed"],
         width: 180,
       },
-      { key: "deliverable", label: "Deliverable", type: "longtext", width: 320 },
+      { key: "deliverable", label: "Deliverable", type: "longtext", width: 300 },
+      {
+        key: "workType",
+        label: "Work Type",
+        type: "select",
+        options: ["", "Webinar", "Blog", "Ad", "Email", "PR", "Enablement", "Social", "Web Page"],
+        width: 130,
+      },
+      { key: "autoTickets", label: "⚡ Tickets Opened", type: "text", width: 180, readOnly: true },
       {
         key: "moment",
         label: "LA | CKO | GA | Launch",
@@ -71,6 +79,22 @@ export const VIEWS: ViewDef[] = [
       { key: "webMopsComplete", label: "Web/MOPS Complete", type: "text", width: 150 },
       { key: "finalDate", label: "Final Post/Send", type: "text", width: 120 },
       { key: "responsible", label: "Responsible", type: "person", width: 170 },
+    ],
+  },
+  {
+    id: "tickets",
+    label: "⚡ Automations",
+    collection: "tickets",
+    description:
+      "Tickets opened automatically by workflow playbooks, grouped by team. Flag a deliverable on the Launch Plan as 'Webinar' and set it to 'Scheduled' — the Webinar playbook opens the Design, MOPS, and Content/Social tickets here. (Mock today; becomes real Jira issues in each team's project once connected.)",
+    groupBy: "team",
+    defaults: { status: "To Do" },
+    columns: [
+      { key: "key", label: "Jira", type: "jira", width: 120, readOnly: true },
+      { key: "summary", label: "Summary", type: "longtext", width: 400 },
+      { key: "status", label: "Status", type: "select", options: ["To Do", "In Progress", "Done"], width: 150 },
+      { key: "team", label: "Team", type: "select", options: ["Design", "Marketing Ops", "Content / Social"], width: 180 },
+      { key: "sourceDeliverable", label: "From Deliverable", type: "text", width: 300, readOnly: true },
     ],
   },
   {

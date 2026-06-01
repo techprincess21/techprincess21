@@ -444,6 +444,8 @@ export const SEED: { [K in CollectionId]: Record[] } = {
         status: "Completed",
         deliverable: "What's New Webinar Live",
         moment: "Post Launch",
+        workType: "Webinar",
+        autoTickets: "DESIGN-5012, MOPS-3821, SOCIAL-204",
         dependency: "Customers only, product-centric",
         links: "Webinar Tracker",
         startDate: "Tue, Mar. 24",
@@ -515,6 +517,61 @@ export const SEED: { [K in CollectionId]: Record[] } = {
         draftDue: "Thu, Mar. 26",
         finalDate: "Thu, Apr. 2",
         responsible: "Felicia Dorng",
+      },
+    },
+    {
+      // Not yet fired — flip Status to "Scheduled" to watch the Webinar
+      // playbook open the Design, MOPS, and Content/Social tickets.
+      id: id(),
+      fields: {
+        phase: "Phase 4 — Post-Launch Optimization & Expansion",
+        status: "Not Started",
+        deliverable: "Customer Webinar — Q3 Search Deep Dive",
+        moment: "Post Launch",
+        workType: "Webinar",
+        dependency: "Auto-opens cross-team tickets when Scheduled",
+        startDate: "Mon, Jul. 6",
+        finalDate: "Wed, Jul. 22",
+        responsible: "Sabrina Schipper",
+      },
+    },
+  ],
+
+  // Tickets opened by workflow automations (mock stand-ins for real Jira
+  // issues across team projects). Two were pre-opened by the Webinar playbook
+  // for "What's New Webinar Live".
+  tickets: [
+    {
+      id: id(),
+      fields: {
+        key: "DESIGN-5012",
+        summary: "Design assets & registration banners for What's New Webinar Live",
+        team: "Design",
+        project: "DESIGN",
+        status: "In Progress",
+        sourceDeliverable: "What's New Webinar Live",
+      },
+    },
+    {
+      id: id(),
+      fields: {
+        key: "MOPS-3821",
+        summary: "Build campaign, registration page & nurture for What's New Webinar Live",
+        team: "Marketing Ops",
+        project: "MOPS",
+        status: "Done",
+        sourceDeliverable: "What's New Webinar Live",
+      },
+    },
+    {
+      id: id(),
+      fields: {
+        key: "SOCIAL-204",
+        summary: "Promote What's New Webinar Live across social + blog",
+        team: "Content / Social",
+        project: "SOCIAL",
+        status: "To Do",
+        sourceDeliverable: "What's New Webinar Live",
       },
     },
   ],
