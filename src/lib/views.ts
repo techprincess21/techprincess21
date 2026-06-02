@@ -44,6 +44,7 @@ export const VIEWS: ViewDef[] = [
       "The GTM launch workback tracker — deliverables grouped by phase, with launch-moment tags, the workback date schedule, and a Responsible owner. Same engine as the Content board, just a different column config.",
     groupBy: "phase",
     defaults: { status: "Not Started", phase: "Phase 1 — Message Validation & Early Readiness" },
+    childLink: { collection: "tickets", parentField: "deliverable", childField: "sourceDeliverable" },
     columns: [
       { key: "jiraKey", label: "Jira", type: "jira", width: 110, readOnly: true },
       {
@@ -61,7 +62,7 @@ export const VIEWS: ViewDef[] = [
         options: ["", "Webinar", "Blog", "Ad", "Email", "PR", "Enablement", "Social", "Web Page"],
         width: 130,
       },
-      { key: "autoTickets", label: "⚡ Tickets Opened", type: "text", width: 180, readOnly: true },
+      { key: "autoTickets", label: "Automation", type: "automation", width: 190 },
       {
         key: "moment",
         label: "LA | CKO | GA | Launch",

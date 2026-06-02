@@ -124,6 +124,28 @@ export const PLAYBOOKS: { [workType: string]: Playbook } = {
   },
 };
 
+const splitStages = (v: unknown) =>
+  String(v ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+// Pure: is there a stage to run right now for this deliverable? Returns the
+// stage + ticket count, or null. Used by the UI to decide whether to show the
+// "Open tickets" button, and by the server to validate a run request.
+export function eligibleStage(
+  workType: unknown,
+  status: unknown,
+  firedStages: unknown
+): { triggerStatus: string; tickets: TicketDef[]; count: number } | null {
+  const pb = PLAYBOOKS[String(workType ?? "")];
+  if (!pb) return null;
+  const stage = pb.stages.find((s) => s.triggerStatus === String(status ?? ""));
+  if (!stage) return null;
+  if (splitStages(firedStages).includes(stage.triggerStatus)) return null;
+  return { triggerStatus: stage.triggerStatus, tickets: stage.tickets, count: stage.tickets.length };
+}
+
 function ticketKey(project: string): string {
   return `${project}-${1000 + Math.floor(Math.random() * 9000)}`;
 }

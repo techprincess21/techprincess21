@@ -1052,6 +1052,156 @@ td.cell-select {
   color: var(--muted);
 }
 
+/* Automation column */
+.auto-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 10px;
+  align-items: flex-start;
+}
+
+.auto-none {
+  color: var(--muted);
+  padding: 0 10px;
+}
+
+.auto-run {
+  border: none;
+  background: #1b1f2a;
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.auto-run:hover {
+  background: #000;
+}
+
+.auto-toggle {
+  border: none;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-weight: 600;
+  font-size: 12px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 0;
+}
+
+.auto-toggle:hover {
+  color: var(--accent);
+}
+
+.auto-toggle .caret {
+  font-size: 10px;
+}
+
+/* Expanded sub-items (opened tickets) */
+.subrow td {
+  background: #fbfbfd;
+}
+
+.subitem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 12px 7px 8px;
+  white-space: nowrap;
+}
+
+.sub-elbow {
+  color: var(--border-strong);
+  font-size: 14px;
+  padding-left: 6px;
+}
+
+.team-chip {
+  display: inline-block;
+  color: #fff;
+  font-weight: 600;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.sub-summary {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text);
+}
+
+.sub-status {
+  min-height: 0;
+  height: 26px;
+  width: 130px;
+  border-radius: 5px;
+  overflow: hidden;
+  flex: 0 0 auto;
+}
+
+.sub-status .status-select {
+  min-height: 26px;
+  height: 26px;
+  font-size: 12px;
+}
+
+.sub-status .status-readonly {
+  font-size: 12px;
+  line-height: 26px;
+}
+
+/* Confirm-automation modal */
+.confirm-modal {
+  max-width: 560px;
+}
+
+.confirm-ticket {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+}
+
+.confirm-ticket-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.confirm-proj {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  background: #eceef3;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.confirm-ticket-head .avatars {
+  margin-left: auto;
+}
+
+.confirm-summary {
+  font-weight: 600;
+}
+
+.confirm-due {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 4px;
+}
+
 /* Automation toast */
 .toast {
   position: fixed;

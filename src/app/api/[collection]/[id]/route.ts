@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { getAdapter } from "@/lib/adapters";
-import { runPlaybooks } from "@/lib/playbooks";
 import { can } from "@/lib/auth";
 import { permissionForPatch } from "@/lib/rbac";
 import type { CollectionId } from "@/lib/types";
@@ -27,15 +26,8 @@ export async function PATCH(
   const fields = body?.fields ?? {};
   const needed = permissionForPatch(params.collection, Object.keys(fields));
   if (!(await can(needed))) return forbidden();
-  const adapter = getAdapter();
-  const record = await adapter.update(params.collection, params.id, fields);
-
-  // Fire any workflow automations triggered by this change.
-  const { record: finalRecord, created, stage } = await runPlaybooks(adapter, params.collection, record);
-  if (created.length > 0) {
-    return NextResponse.json({ record: finalRecord, automation: { created, stage } });
-  }
-  return NextResponse.json({ record: finalRecord });
+  const record = await getAdapter().update(params.collection, params.id, fields);
+  return NextResponse.json({ record });
 }
 
 export async function DELETE(

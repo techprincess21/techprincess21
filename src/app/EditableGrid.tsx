@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import type { ColumnDef, FieldValue, Record, ViewDef } from "@/lib/types";
 import { avatarColor, chipColor, groupColor, initials, splitPeople } from "@/lib/colors";
 import { STATUS_FIELD } from "@/lib/rbac";
+import { eligibleStage, type TicketDef } from "@/lib/playbooks";
 import MultiSelect from "./MultiSelect";
 import CustomizeModal from "./CustomizeModal";
+import ConfirmAutomationModal from "./ConfirmAutomationModal";
 
 const JIRA_BASE = "https://taktak.atlassian.net";
 
@@ -42,6 +44,7 @@ export default function EditableGrid({
   const canStatus = has("item.status.edit");
   const canPeople = has("item.people.assign");
   const canFields = has("item.fields.edit");
+  const canRunAutomation = has("automation.run");
   const statusField = STATUS_FIELD[view.collection];
 
   // Is a given cell editable for this user?
@@ -68,6 +71,89 @@ export default function EditableGrid({
   // Drag-and-drop state
   const [dragRow, setDragRow] = useState<string | null>(null);
   const [dragCol, setDragCol] = useState<string | null>(null);
+
+  // Child records (e.g. tickets opened by automations), expansion, and the
+  // confirmation gate for running a playbook.
+  const [childRecords, setChildRecords] = useState<Record[]>([]);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [confirm, setConfirm] = useState<{ rec: Record; stage: string; tickets: TicketDef[] } | null>(null);
+  const [running, setRunning] = useState(false);
+
+  const childLink = view.childLink;
+
+  function reloadChildren() {
+    if (!childLink) return;
+    fetch(`/api/${childLink.collection}`)
+      .then((r) => r.json())
+      .then((d) => setChildRecords(d.records ?? []))
+      .catch(() => {});
+  }
+
+  useEffect(() => {
+    if (!childLink) {
+      setChildRecords([]);
+      return;
+    }
+    let cancelled = false;
+    fetch(`/api/${childLink.collection}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (!cancelled) setChildRecords(d.records ?? []);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [childLink?.collection]);
+
+  const childrenFor = (rec: Record): Record[] => {
+    if (!childLink) return [];
+    const key = String(rec.fields[childLink.parentField] ?? "");
+    return childRecords.filter((c) => String(c.fields[childLink.childField] ?? "") === key);
+  };
+
+  function toggleExpand(id: string) {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  async function confirmRun() {
+    if (!confirm) return;
+    setRunning(true);
+    try {
+      const res = await fetch(`/api/${view.collection}/${confirm.rec.id}/run`, { method: "POST" });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.record) {
+        setToast(data?.error ? `Couldn’t open tickets: ${data.error}` : "Couldn’t open tickets.");
+        return;
+      }
+      setRecords((prev) =>
+        prev ? prev.map((r) => (r.id === confirm.rec.id ? { ...r, fields: { ...r.fields, ...data.record.fields } } : r)) : prev
+      );
+      reloadChildren();
+      setExpanded((prev) => new Set(prev).add(confirm.rec.id));
+      const c = data.created ?? [];
+      setToast(`⚡ Opened ${c.length} tickets: ${c.map((t: { key: string }) => t.key).join(", ")}`);
+    } finally {
+      setRunning(false);
+      setConfirm(null);
+    }
+  }
+
+  async function setChildStatus(child: Record, value: string) {
+    setChildRecords((prev) =>
+      prev.map((c) => (c.id === child.id ? { ...c, fields: { ...c.fields, status: value } } : c))
+    );
+    await fetch(`/api/${childLink!.collection}/${child.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fields: { status: value } }),
+    });
+  }
 
   // Effective dropdown options for a column: per-board overrides win over the
   // code defaults.
@@ -128,32 +214,11 @@ export default function EditableGrid({
         : prev
     );
     try {
-      const res = await fetch(`/api/${view.collection}/${record.id}`, {
+      await fetch(`/api/${view.collection}/${record.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ fields: { [key]: value } }),
       });
-      const data = await res.json().catch(() => null);
-      // Merge any server-side field changes (e.g. autoTickets written by a
-      // playbook) back into local state.
-      if (data?.record?.fields) {
-        setRecords((prev) =>
-          prev
-            ? prev.map((r) =>
-                r.id === record.id ? { ...r, fields: { ...r.fields, ...data.record.fields } } : r
-              )
-            : prev
-        );
-      }
-      if (data?.automation?.created?.length) {
-        const c = data.automation.created;
-        const stage = data.automation.stage ? ` (${data.automation.stage})` : "";
-        setToast(
-          `⚡ Webinar playbook${stage} opened ${c.length} tickets: ${c
-            .map((t: { key: string }) => t.key)
-            .join(", ")}`
-        );
-      }
     } finally {
       setSavingCell((c) => (c === cellId ? null : c));
     }
@@ -392,6 +457,17 @@ export default function EditableGrid({
         />
       )}
 
+      {confirm && (
+        <ConfirmAutomationModal
+          deliverable={String(confirm.rec.fields.deliverable ?? "this item")}
+          stage={confirm.stage}
+          tickets={confirm.tickets}
+          busy={running}
+          onConfirm={confirmRun}
+          onCancel={() => setConfirm(null)}
+        />
+      )}
+
       {totalShown === 0 ? (
         <div className="results-empty">No items match your filters.</div>
       ) : (
@@ -455,57 +531,89 @@ export default function EditableGrid({
                         </tr>
                       </thead>
                       <tbody>
-                        {g.records.map((rec) => (
-                          <tr
-                            key={rec.id}
-                            className={dragRow === rec.id ? "row-dragging" : ""}
-                            onDragOver={(e) => dragRow && e.preventDefault()}
-                            onDrop={() => {
-                              if (dragRow && dragRow !== rec.id) moveRow(dragRow, { beforeId: rec.id });
-                              setDragRow(null);
-                            }}
-                          >
-                            {canReorder ? (
-                              <td
-                                className="drag-handle"
-                                draggable
-                                onDragStart={() => setDragRow(rec.id)}
-                                onDragEnd={() => setDragRow(null)}
-                                title="Drag to reorder / move between groups"
+                        {g.records.map((rec) => {
+                          const kids = childrenFor(rec);
+                          const isExpanded = expanded.has(rec.id);
+                          return (
+                            <Fragment key={rec.id}>
+                              <tr
+                                className={dragRow === rec.id ? "row-dragging" : ""}
+                                onDragOver={(e) => dragRow && e.preventDefault()}
+                                onDrop={() => {
+                                  if (dragRow && dragRow !== rec.id) moveRow(dragRow, { beforeId: rec.id });
+                                  setDragRow(null);
+                                }}
                               >
-                                ⠿
-                              </td>
-                            ) : (
-                              <td className="handle-col" />
-                            )}
-                            <td className="rail" style={{ background: color }} />
-                            {columns.map((col) => (
-                              <td key={col.key} className={`cell cell-${col.type}`}>
-                                <Cell
-                                  col={col}
-                                  value={rec.fields[col.key] ?? null}
-                                  jiraKey={rec.jiraKey ?? null}
-                                  options={effOptions(col)}
-                                  colorMap={colorOverrides[col.key]}
-                                  disabled={cellDisabled(col)}
-                                  saving={savingCell === `${rec.id}:${col.key}`}
-                                  onCommit={(v) => saveField(rec, col.key, v)}
-                                />
-                              </td>
-                            ))}
-                            <td className="del-col">
-                              {canDelete && (
-                                <button
-                                  className="row-del"
-                                  title="Delete item"
-                                  onClick={() => removeRow(rec.id)}
-                                >
-                                  ×
-                                </button>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
+                                {canReorder ? (
+                                  <td
+                                    className="drag-handle"
+                                    draggable
+                                    onDragStart={() => setDragRow(rec.id)}
+                                    onDragEnd={() => setDragRow(null)}
+                                    title="Drag to reorder / move between groups"
+                                  >
+                                    ⠿
+                                  </td>
+                                ) : (
+                                  <td className="handle-col" />
+                                )}
+                                <td className="rail" style={{ background: color }} />
+                                {columns.map((col) =>
+                                  col.type === "automation" ? (
+                                    <td key={col.key} className="cell cell-automation">
+                                      <AutomationCell
+                                        rec={rec}
+                                        kids={kids}
+                                        expanded={isExpanded}
+                                        canRun={canRunAutomation}
+                                        onToggle={() => toggleExpand(rec.id)}
+                                        onOpen={(stage, tickets) => setConfirm({ rec, stage, tickets })}
+                                      />
+                                    </td>
+                                  ) : (
+                                    <td key={col.key} className={`cell cell-${col.type}`}>
+                                      <Cell
+                                        col={col}
+                                        value={rec.fields[col.key] ?? null}
+                                        jiraKey={rec.jiraKey ?? null}
+                                        options={effOptions(col)}
+                                        colorMap={colorOverrides[col.key]}
+                                        disabled={cellDisabled(col)}
+                                        saving={savingCell === `${rec.id}:${col.key}`}
+                                        onCommit={(v) => saveField(rec, col.key, v)}
+                                      />
+                                    </td>
+                                  )
+                                )}
+                                <td className="del-col">
+                                  {canDelete && (
+                                    <button
+                                      className="row-del"
+                                      title="Delete item"
+                                      onClick={() => removeRow(rec.id)}
+                                    >
+                                      ×
+                                    </button>
+                                  )}
+                                </td>
+                              </tr>
+                              {isExpanded &&
+                                kids.map((child) => (
+                                  <tr className="subrow" key={child.id}>
+                                    <td className="handle-col" />
+                                    <td className="rail" style={{ background: color, opacity: 0.5 }} />
+                                    <td colSpan={dataCols + 1}>
+                                      <SubItem
+                                        child={child}
+                                        canEditStatus={canStatus}
+                                        onStatus={(v) => setChildStatus(child, v)}
+                                      />
+                                    </td>
+                                  </tr>
+                                ))}
+                            </Fragment>
+                          );
+                        })}
                         {canCreate && (
                           <tr className="add-row">
                             <td className="handle-col" />
@@ -526,6 +634,112 @@ export default function EditableGrid({
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+// The Automation column: an "Open tickets" button when a playbook stage is
+// eligible at the current status, and/or an expand toggle once tickets exist.
+function AutomationCell({
+  rec,
+  kids,
+  expanded,
+  canRun,
+  onToggle,
+  onOpen,
+}: {
+  rec: Record;
+  kids: Record[];
+  expanded: boolean;
+  canRun: boolean;
+  onToggle: () => void;
+  onOpen: (stage: string, tickets: TicketDef[]) => void;
+}) {
+  const elig = eligibleStage(rec.fields.workType, rec.fields.status, rec.fields.firedStages);
+  const done = kids.filter((k) => String(k.fields.status ?? "") === "Done").length;
+
+  if (!elig && kids.length === 0) return <span className="auto-none">—</span>;
+
+  return (
+    <div className="auto-cell">
+      {elig && canRun && (
+        <button
+          className="auto-run"
+          title={`Open ${elig.count} tickets`}
+          onClick={() => onOpen(elig.triggerStatus, elig.tickets)}
+        >
+          ⚡ Open tickets ({elig.count})
+        </button>
+      )}
+      {kids.length > 0 && (
+        <button className="auto-toggle" onClick={onToggle}>
+          <span className={`caret ${expanded ? "" : "closed"}`}>▾</span>
+          {kids.length} ticket{kids.length === 1 ? "" : "s"} · {done}/{kids.length} done
+        </button>
+      )}
+    </div>
+  );
+}
+
+// One opened ticket, shown indented beneath its deliverable, with an editable
+// status chip so you can see and advance the sub-workflow inline.
+function SubItem({
+  child,
+  canEditStatus,
+  onStatus,
+}: {
+  child: Record;
+  canEditStatus: boolean;
+  onStatus: (value: string) => void;
+}) {
+  const f = child.fields;
+  const key = String(f.key ?? "");
+  const team = String(f.team ?? "");
+  const status = String(f.status ?? "");
+  const people = splitPeople(String(f.assignee ?? ""));
+  const options = ["To Do", "In Progress", "Done"];
+  return (
+    <div className="subitem">
+      <span className="sub-elbow">↳</span>
+      {key && (
+        <a className="jira-key" href={`${JIRA_BASE}/browse/${key}`} target="_blank" rel="noreferrer">
+          {key}
+        </a>
+      )}
+      {team && (
+        <span className="team-chip" style={{ background: chipColor(team) }}>
+          {team}
+        </span>
+      )}
+      <span className="sub-summary" title={String(f.summary ?? "")}>
+        {String(f.summary ?? "")}
+      </span>
+      <div className="sub-status status-chip" style={{ background: chipColor(status) }}>
+        {canEditStatus ? (
+          <select className="status-select" value={status} onChange={(e) => onStatus(e.target.value)}>
+            {options.map((o) => (
+              <option key={o} value={o}>
+                {o}
+              </option>
+            ))}
+            {status && !options.includes(status) && <option value={status}>{status}</option>}
+          </select>
+        ) : (
+          <span className="status-readonly">{status || "—"}</span>
+        )}
+      </div>
+      <div className="avatars">
+        {people.map((p, i) => (
+          <span
+            key={p + i}
+            className="avatar"
+            style={{ background: avatarColor(p), zIndex: people.length - i }}
+            title={p}
+          >
+            {initials(p)}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }

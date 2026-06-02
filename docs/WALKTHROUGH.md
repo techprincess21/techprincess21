@@ -100,14 +100,22 @@ The rest of our planning surfaces, same treatment.
   from the time-period dropdown in ten seconds.
 
 ### Automate the busywork (the headline feature)
-On the **Launch Plan**, set a deliverable's **Work Type** to **Webinar**, then
-move its status to **Scheduled**. The app instantly opens the **Design**,
-**Marketing Ops**, **Content/Social**, and **webinar-setup** tickets — each
-routed to the right team, assigned to the right people, with a checklist of the
-real sub-steps from our webinar runbook. Move it to **Completed** and it opens
-the post-event wrap-up ticket. You'll see them appear on the **⚡ Automations**
-tab. *This is the "I shouldn't need a whole human to manage webinar setup"
-problem, solved.*
+On the **Launch Plan**, set a deliverable's **Work Type** to **Webinar** and move
+its status to **Scheduled**. A **⚡ Open tickets** button appears on that line.
+Click it and you get a **confirmation** showing exactly what will be created —
+the **Design**, **Marketing Ops**, **Content/Social**, and **webinar-setup**
+tickets, each routed to the right team, tagged to the right people, with a
+checklist of the real sub-steps from our webinar runbook. Confirm, and they open
+(you'll also see them on the **⚡ Automations** tab). Move the deliverable to
+**Completed** and a new button offers the post-event wrap-up ticket.
+
+Nothing fires on its own — **you always click and confirm first** (no runaway
+processes), and only people with the right role can run automations.
+
+Once a line has opened tickets, click the **"N tickets · X/Y done"** toggle on
+that line to **expand it** and see each sub-ticket's status inline — and nudge a
+status forward right there. *This is the "I shouldn't need a whole human to
+manage webinar setup" problem, solved.*
 
 ### See the access model
 Use the **"Viewing as"** switcher in the top-right to become different people.

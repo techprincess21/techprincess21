@@ -141,12 +141,21 @@ field), a **due-date hint** (abstract 3.5 wks prior; emails 2wk/1wk/1day), and a
 
 The person running the launch no longer has to *know* that a webinar needs four
 teams and a dozen sub-steps. They flag the work type; the workflow knows the
-rest. Firing is **idempotent per stage**, so a status bouncing around never
-double-opens tickets.
+rest.
 
-You can see this live on the **⚡ Automations** tab. Flag a deliverable on the
-Launch Plan as *Webinar* and set it to *Scheduled* — the tickets appear,
-grouped by team, and the deliverable shows the ticket keys it opened.
+**It never fires on its own.** When a stage is eligible (right work type + right
+status), the line shows a **⚡ Open tickets** button. Clicking it opens a
+**confirmation** that lists exactly what will be created, in which projects, and
+who gets tagged — only then are the tickets opened. This is deliberate: no
+runaway processes. Running a playbook also requires the `automation.run`
+permission, and each stage is **idempotent** (it won't re-open tickets it's
+already opened).
+
+Once a line has opened tickets, it becomes **expandable**: click the toggle to
+reveal the sub-tickets beneath it, each with its own status chip you can advance
+inline — so you can see the whole sub-workflow at a glance without leaving the
+board. (Opened tickets also appear on the **⚡ Automations** tab, grouped by
+team.)
 
 **Today vs. live:**
 - *Today:* the tickets are mock records, so you can demo the fan-out safely.

@@ -30,7 +30,8 @@ export type ColumnType =
   | "select"
   | "url"
   | "jira"
-  | "person";
+  | "person"
+  | "automation";
 
 export interface ColumnDef {
   key: string;
@@ -52,4 +53,7 @@ export interface ViewDef {
   groupBy?: string;
   // Default field values applied when adding a new row in this view.
   defaults?: { [key: string]: FieldValue };
+  // Optional link to child records (e.g. tickets opened by automations) that can
+  // be expanded inline beneath each row.
+  childLink?: { collection: CollectionId; parentField: string; childField: string };
 }
