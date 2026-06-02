@@ -5,8 +5,11 @@ import {
   setColumnOrder,
   setColor,
   setPeople,
+  setRole,
   setTabOrder,
+  setUserRole,
 } from "@/lib/config-store";
+import { can } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,9 +20,17 @@ export async function GET() {
 }
 
 const strList = (arr: unknown[]) => [...new Set(arr.map((o) => String(o)).filter(Boolean))] as string[];
+const forbidden = () => NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+const CUSTOMIZE = new Set(["options", "columns", "tabs", "color", "people"]);
+const ACCESS = new Set(["role", "userRole"]);
 
 export async function PUT(req: Request) {
   const body = await req.json().catch(() => ({}));
+
+  // Permission gate by action category.
+  if (CUSTOMIZE.has(body?.action) && !(await can("board.customize"))) return forbidden();
+  if (ACCESS.has(body?.action) && !(await can("roles.manage"))) return forbidden();
 
   if (body?.action === "options" && body.viewId && body.columnKey && Array.isArray(body.options)) {
     return NextResponse.json({ config: await setColumnOptions(body.viewId, body.columnKey, strList(body.options)) });
@@ -36,6 +47,12 @@ export async function PUT(req: Request) {
   }
   if (body?.action === "people" && Array.isArray(body.people)) {
     return NextResponse.json({ config: await setPeople(strList(body.people)) });
+  }
+  if (body?.action === "role" && typeof body.role === "string" && Array.isArray(body.permissions)) {
+    return NextResponse.json({ config: await setRole(body.role, strList(body.permissions)) });
+  }
+  if (body?.action === "userRole" && typeof body.userId === "string" && typeof body.role === "string") {
+    return NextResponse.json({ config: await setUserRole(body.userId, body.role) });
   }
   return NextResponse.json({ error: "Invalid config update" }, { status: 400 });
 }

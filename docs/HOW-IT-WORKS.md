@@ -149,6 +149,26 @@ a runbook doc ("How to launch a webinar"), and it drafts the playbook for you to
 approve. That's the bridge from "we wrote it down in a doc nobody reads" to "the
 system does it."
 
+## Security & access (RBAC)
+
+Access is modeled as **Permissions → Roles → People** (Model A: the app enforces
+permissions over a single Jira service account):
+
+- **Granular permissions** — view, add self as watcher, change status, assign
+  people, edit fields, create/delete items, reorder, customize boards, create
+  projects, run automations, manage roles.
+- **Roles** are editable bundles of permissions (Viewer → Contributor → Editor →
+  Project Admin → Org Admin), edited in the **Roles & Access** panel.
+- **People** are assigned roles. Today identity comes from a **dev "Viewing as"
+  switcher** so the access model can be demoed; with **Okta SSO (OIDC)** wired
+  up, identity + group membership come from the verified token and Okta groups
+  drive these role assignments.
+
+Crucially, enforcement is **server-side on every mutating route** — the UI also
+hides controls a user can't use, but the server is the real gate (a Viewer who
+forged a request still gets a 403). When live on Jira, Jira's own permission
+scheme stays on as a backstop beneath this friendlier layer.
+
 ## The roadmap (where this can go)
 
 1. **Now:** the experience, mock-backed. ✅

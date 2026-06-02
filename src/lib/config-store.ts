@@ -1,6 +1,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { VIEWS } from "@/lib/views";
+import { DEFAULT_ROLES, DEFAULT_USER_ROLES } from "@/lib/rbac";
 
 // Per-board customization store.
 //
@@ -18,6 +19,8 @@ export interface AppConfig {
   tabOrder: string[];
   colors: { [viewId: string]: { [columnKey: string]: { [value: string]: string } } };
   people: string[];
+  roles: { [role: string]: string[] };
+  userRoles: { [userId: string]: string };
 }
 
 const DATA_DIR = process.env.DATA_DIR || path.join(process.cwd(), ".data");
@@ -47,6 +50,8 @@ function defaultConfig(): AppConfig {
     tabOrder: VIEWS.map((v) => v.id),
     colors: {},
     people: [...DEFAULT_PEOPLE],
+    roles: structuredClone(DEFAULT_ROLES),
+    userRoles: { ...DEFAULT_USER_ROLES },
   };
 }
 
@@ -64,6 +69,8 @@ export async function getConfig(): Promise<AppConfig> {
       tabOrder: saved.tabOrder?.length ? saved.tabOrder : base.tabOrder,
       colors: saved.colors ?? {},
       people: saved.people?.length ? saved.people : base.people,
+      roles: { ...base.roles, ...(saved.roles ?? {}) },
+      userRoles: { ...base.userRoles, ...(saved.userRoles ?? {}) },
     };
   } catch {
     cache = base;
@@ -117,6 +124,20 @@ export async function setColor(viewId: string, columnKey: string, value: string,
 export async function setPeople(people: string[]) {
   const cfg = await getConfig();
   cfg.people = people;
+  await persist();
+  return cfg;
+}
+
+export async function setRole(role: string, permissions: string[]) {
+  const cfg = await getConfig();
+  cfg.roles[role] = permissions;
+  await persist();
+  return cfg;
+}
+
+export async function setUserRole(userId: string, role: string) {
+  const cfg = await getConfig();
+  cfg.userRoles[userId] = role;
   await persist();
   return cfg;
 }

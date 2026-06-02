@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ColumnDef, FieldValue, Record, ViewDef } from "@/lib/types";
 import { avatarColor, chipColor, groupColor, initials, splitPeople } from "@/lib/colors";
+import { STATUS_FIELD } from "@/lib/rbac";
 import MultiSelect from "./MultiSelect";
 import CustomizeModal from "./CustomizeModal";
 
@@ -12,6 +13,7 @@ const PEOPLE_LIST_ID = "people-options";
 
 export default function EditableGrid({
   view,
+  perms = [],
   optionOverrides = {},
   columnOrder = [],
   colorOverrides = {},
@@ -22,6 +24,7 @@ export default function EditableGrid({
   onSavePeople,
 }: {
   view: ViewDef;
+  perms?: string[];
   optionOverrides?: { [columnKey: string]: string[] };
   columnOrder?: string[];
   colorOverrides?: { [columnKey: string]: { [value: string]: string } };
@@ -31,6 +34,23 @@ export default function EditableGrid({
   onSaveColor?: (columnKey: string, value: string, hex: string | null) => void;
   onSavePeople?: (people: string[]) => void;
 }) {
+  const has = (p: string) => perms.includes(p);
+  const canCreate = has("item.create");
+  const canDelete = has("item.delete");
+  const canCustomize = has("board.customize");
+  const canReorder = has("board.reorder");
+  const canStatus = has("item.status.edit");
+  const canPeople = has("item.people.assign");
+  const canFields = has("item.fields.edit");
+  const statusField = STATUS_FIELD[view.collection];
+
+  // Is a given cell editable for this user?
+  const cellDisabled = (col: ColumnDef): boolean => {
+    if (col.readOnly || col.type === "jira") return true;
+    if (col.type === "select") return col.key === statusField ? !canStatus : !canFields;
+    if (col.type === "person") return !canPeople;
+    return !canFields;
+  };
   const [records, setRecords] = useState<Record[] | null>(null);
   const [savingCell, setSavingCell] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
@@ -298,9 +318,11 @@ export default function EditableGrid({
       <p className="view-desc">{view.description}</p>
 
       <div className="board-toolbar">
-        <button className="btn btn-primary" onClick={() => addRow(undefined)}>
-          New item
-        </button>
+        {canCreate && (
+          <button className="btn btn-primary" onClick={() => addRow(undefined)}>
+            New item
+          </button>
+        )}
 
         <div className="search-box">
           <span className="search-icon">⌕</span>
@@ -338,7 +360,7 @@ export default function EditableGrid({
           </button>
         )}
 
-        {onSaveOptions && onSavePeople && (
+        {canCustomize && onSaveOptions && onSavePeople && (
           <button className="btn btn-ghost" onClick={() => setCustomizeOpen(true)} title="Customize this board">
             ⚙ Customize
           </button>
@@ -417,14 +439,14 @@ export default function EditableGrid({
                               key={c.key}
                               style={{ minWidth: c.width }}
                               className={dragCol === c.key ? "col-dragging" : ""}
-                              draggable={Boolean(onSaveColumns)}
-                              onDragStart={() => setDragCol(c.key)}
+                              draggable={canCustomize && Boolean(onSaveColumns)}
+                              onDragStart={() => canCustomize && setDragCol(c.key)}
                               onDragOver={(e) => dragCol && e.preventDefault()}
                               onDrop={() => {
                                 if (dragCol) moveColumn(dragCol, c.key);
                                 setDragCol(null);
                               }}
-                              title={onSaveColumns ? "Drag to reorder column" : undefined}
+                              title={canCustomize && onSaveColumns ? "Drag to reorder column" : undefined}
                             >
                               {c.label}
                             </th>
@@ -443,15 +465,19 @@ export default function EditableGrid({
                               setDragRow(null);
                             }}
                           >
-                            <td
-                              className="drag-handle"
-                              draggable
-                              onDragStart={() => setDragRow(rec.id)}
-                              onDragEnd={() => setDragRow(null)}
-                              title="Drag to reorder / move between groups"
-                            >
-                              ⠿
-                            </td>
+                            {canReorder ? (
+                              <td
+                                className="drag-handle"
+                                draggable
+                                onDragStart={() => setDragRow(rec.id)}
+                                onDragEnd={() => setDragRow(null)}
+                                title="Drag to reorder / move between groups"
+                              >
+                                ⠿
+                              </td>
+                            ) : (
+                              <td className="handle-col" />
+                            )}
                             <td className="rail" style={{ background: color }} />
                             {columns.map((col) => (
                               <td key={col.key} className={`cell cell-${col.type}`}>
@@ -461,31 +487,36 @@ export default function EditableGrid({
                                   jiraKey={rec.jiraKey ?? null}
                                   options={effOptions(col)}
                                   colorMap={colorOverrides[col.key]}
+                                  disabled={cellDisabled(col)}
                                   saving={savingCell === `${rec.id}:${col.key}`}
                                   onCommit={(v) => saveField(rec, col.key, v)}
                                 />
                               </td>
                             ))}
                             <td className="del-col">
-                              <button
-                                className="row-del"
-                                title="Delete item"
-                                onClick={() => removeRow(rec.id)}
-                              >
-                                ×
-                              </button>
+                              {canDelete && (
+                                <button
+                                  className="row-del"
+                                  title="Delete item"
+                                  onClick={() => removeRow(rec.id)}
+                                >
+                                  ×
+                                </button>
+                              )}
                             </td>
                           </tr>
                         ))}
-                        <tr className="add-row">
-                          <td className="handle-col" />
-                          <td className="rail" style={{ background: color, opacity: 0.4 }} />
-                          <td colSpan={dataCols + 1}>
-                            <button className="add-item" onClick={() => addRow(g.key)}>
-                              + Add item
-                            </button>
-                          </td>
-                        </tr>
+                        {canCreate && (
+                          <tr className="add-row">
+                            <td className="handle-col" />
+                            <td className="rail" style={{ background: color, opacity: 0.4 }} />
+                            <td colSpan={dataCols + 1}>
+                              <button className="add-item" onClick={() => addRow(g.key)}>
+                                + Add item
+                              </button>
+                            </td>
+                          </tr>
+                        )}
                       </tbody>
                     </table>
                   </div>
@@ -505,6 +536,7 @@ function Cell({
   jiraKey,
   options,
   colorMap,
+  disabled,
   saving,
   onCommit,
 }: {
@@ -513,6 +545,7 @@ function Cell({
   jiraKey: string | null;
   options?: string[];
   colorMap?: { [value: string]: string };
+  disabled?: boolean;
   saving: boolean;
   onCommit: (v: FieldValue) => void;
 }) {
@@ -538,6 +571,13 @@ function Cell({
   if (col.type === "select") {
     const opts = options ?? col.options ?? [];
     const color = (colorMap && colorMap[draft]) || chipColor(draft);
+    if (disabled) {
+      return (
+        <div className="status-chip readonly" style={{ background: color }} title="No permission to edit">
+          <span className="status-readonly">{draft || "—"}</span>
+        </div>
+      );
+    }
     return (
       <div className="status-chip" style={{ background: color }}>
         <select
@@ -581,19 +621,23 @@ function Cell({
             ))
           )}
         </div>
-        <input
-          className={`cell-input person-input ${saving ? "is-saving" : ""}`}
-          value={draft}
-          placeholder="Assign…"
-          list={PEOPLE_LIST_ID}
-          onChange={(e) => setDraft(e.target.value)}
-          onBlur={() => onCommit(draft || null)}
-        />
+        {disabled ? (
+          <span className="cell-input ro">{draft || "—"}</span>
+        ) : (
+          <input
+            className={`cell-input person-input ${saving ? "is-saving" : ""}`}
+            value={draft}
+            placeholder="Assign…"
+            list={PEOPLE_LIST_ID}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={() => onCommit(draft || null)}
+          />
+        )}
       </div>
     );
   }
 
-  if (col.readOnly) {
+  if (col.readOnly || disabled) {
     return <span className="cell-input ro">{draft || "—"}</span>;
   }
 

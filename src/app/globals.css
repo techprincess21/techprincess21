@@ -61,6 +61,169 @@ body {
   font-size: 14px;
 }
 
+.demo-note {
+  font-style: italic;
+}
+
+/* Identity / role switcher */
+.who {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.who-label {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.who-select {
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font: inherit;
+  font-weight: 600;
+  background: #fff;
+  cursor: pointer;
+}
+
+.who-role {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #1b1f2a;
+  color: #fff;
+}
+
+.who-manage {
+  height: 32px;
+  padding: 0 12px;
+}
+
+/* Read-only status chip (no edit permission) */
+.status-chip.readonly {
+  cursor: not-allowed;
+}
+
+.status-readonly {
+  color: #fff;
+  font-weight: 600;
+  text-align: center;
+  width: 100%;
+  padding: 0 10px;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.12);
+}
+
+/* Access modal */
+.access-modal {
+  max-width: 760px;
+}
+
+.access-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 0 22px;
+  border-bottom: 1px solid var(--border);
+}
+
+.access-tabs button {
+  border: none;
+  background: none;
+  padding: 9px 14px;
+  font: inherit;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+
+.access-tabs button.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.perm-grid-wrap {
+  overflow-x: auto;
+}
+
+.perm-grid {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 13px;
+}
+
+.perm-grid th,
+.perm-grid td {
+  border-bottom: 1px solid var(--border);
+  padding: 8px 10px;
+  text-align: center;
+}
+
+.perm-grid th {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+}
+
+.perm-grid .perm-name {
+  text-align: left;
+  font-weight: 500;
+  min-width: 240px;
+}
+
+.perm-group-row td {
+  text-align: left;
+  font-weight: 700;
+  background: var(--group);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+}
+
+.perm-cell input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.people-roles {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pr-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.pr-name {
+  font-weight: 600;
+}
+
+.pr-row select {
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.modal-foot-note {
+  margin-right: auto;
+  color: var(--muted);
+  font-size: 12px;
+}
+
 .app-sub code {
   background: #eceef3;
   padding: 1px 6px;

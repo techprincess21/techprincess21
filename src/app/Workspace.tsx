@@ -3,11 +3,34 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ViewDef } from "@/lib/types";
 import type { AppConfig } from "@/lib/config-store";
+import { DEMO_USERS } from "@/lib/rbac";
 import EditableGrid from "./EditableGrid";
+import AccessModal from "./AccessModal";
 
-export default function Workspace({ views, adapter }: { views: ViewDef[]; adapter: string }) {
+interface Me {
+  id: string;
+  name: string;
+  role: string;
+  perms: string[];
+}
+
+export default function Workspace({
+  views,
+  adapter,
+  me,
+}: {
+  views: ViewDef[];
+  adapter: string;
+  me: Me;
+}) {
   const [config, setConfig] = useState<AppConfig | null>(null);
   const [dragTab, setDragTab] = useState<string | null>(null);
+  const [accessOpen, setAccessOpen] = useState(false);
+  const [accessDirty, setAccessDirty] = useState(false);
+
+  const has = (p: string) => me.perms.includes(p);
+  const canCustomize = has("board.customize");
+  const canManageRoles = has("roles.manage");
 
   useEffect(() => {
     fetch("/api/config")
@@ -16,7 +39,6 @@ export default function Workspace({ views, adapter }: { views: ViewDef[]; adapte
       .catch(() => setConfig(null));
   }, []);
 
-  // Order tabs by saved tab order, appending any new views.
   const orderedViews = useMemo(() => {
     const order = config?.tabOrder ?? [];
     const byId = new Map(views.map((v) => [v.id, v]));
@@ -66,9 +88,19 @@ export default function Workspace({ views, adapter }: { views: ViewDef[]; adapte
     setConfig((p) => (p ? { ...p, tabOrder: ids } : p));
     putConfig({ action: "tabs", ids });
   }
+  function saveRole(role: string, permissions: string[]) {
+    setAccessDirty(true);
+    setConfig((p) => (p ? { ...p, roles: { ...p.roles, [role]: permissions } } : p));
+    putConfig({ action: "role", role, permissions });
+  }
+  function saveUserRole(userId: string, role: string) {
+    setAccessDirty(true);
+    setConfig((p) => (p ? { ...p, userRoles: { ...p.userRoles, [userId]: role } } : p));
+    putConfig({ action: "userRole", userId, role });
+  }
 
   function dropTab(targetId: string) {
-    if (!dragTab || dragTab === targetId) return setDragTab(null);
+    if (!canCustomize || !dragTab || dragTab === targetId) return setDragTab(null);
     const ids = orderedViews.map((v) => v.id);
     const di = ids.indexOf(dragTab);
     ids.splice(di, 1);
@@ -76,6 +108,18 @@ export default function Workspace({ views, adapter }: { views: ViewDef[]; adapte
     ids.splice(ti < 0 ? ids.length : ti, 0, dragTab);
     saveTabs(ids);
     setDragTab(null);
+  }
+
+  function switchUser(userId: string) {
+    document.cookie = `devUser=${userId};path=/;max-age=31536000`;
+    window.location.reload();
+  }
+
+  function closeAccess() {
+    setAccessOpen(false);
+    // Role/permission changes affect server-side gating + this user's own
+    // permissions, so reload to re-resolve everything correctly.
+    if (accessDirty) window.location.reload();
   }
 
   const activeOptions = (active && config?.options[active.id]) || {};
@@ -88,9 +132,26 @@ export default function Workspace({ views, adapter }: { views: ViewDef[]; adapte
       <div className="app-header">
         <h1>Content Workspace</h1>
         <span className="badge">{adapter === "jira" ? "Live: Jira" : "Mock data"}</span>
+        <div className="who">
+          <span className="who-label">Viewing as</span>
+          <select className="who-select" value={me.id} onChange={(e) => switchUser(e.target.value)}>
+            {DEMO_USERS.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.name}
+              </option>
+            ))}
+          </select>
+          <span className="who-role">{me.role}</span>
+          {canManageRoles && (
+            <button className="btn btn-ghost who-manage" onClick={() => setAccessOpen(true)}>
+              Manage access
+            </button>
+          )}
+        </div>
       </div>
       <p className="app-sub">
         A spreadsheet-style view over your Jira <code>WEB</code> project. Edits save automatically.
+        <span className="demo-note"> · “Viewing as” is a demo stand-in for Okta SSO.</span>
       </p>
 
       <div className="tabs">
@@ -99,11 +160,11 @@ export default function Workspace({ views, adapter }: { views: ViewDef[]; adapte
             key={v.id}
             className={`tab ${v.id === activeId ? "active" : ""} ${dragTab === v.id ? "dragging" : ""}`}
             onClick={() => setActiveId(v.id)}
-            draggable
-            onDragStart={() => setDragTab(v.id)}
-            onDragOver={(e) => e.preventDefault()}
+            draggable={canCustomize}
+            onDragStart={() => canCustomize && setDragTab(v.id)}
+            onDragOver={(e) => dragTab && e.preventDefault()}
             onDrop={() => dropTab(v.id)}
-            title="Drag to reorder tabs"
+            title={canCustomize ? "Drag to reorder tabs" : undefined}
           >
             {v.label}
           </button>
@@ -114,6 +175,7 @@ export default function Workspace({ views, adapter }: { views: ViewDef[]; adapte
         <EditableGrid
           key={active.id}
           view={active}
+          perms={me.perms}
           optionOverrides={activeOptions}
           columnOrder={activeColumns}
           colorOverrides={activeColors}
@@ -122,6 +184,16 @@ export default function Workspace({ views, adapter }: { views: ViewDef[]; adapte
           onSaveColumns={(keys) => saveColumns(active.id, keys)}
           onSaveColor={(columnKey, value, hex) => saveColor(active.id, columnKey, value, hex)}
           onSavePeople={savePeople}
+        />
+      )}
+
+      {accessOpen && config && (
+        <AccessModal
+          roles={config.roles}
+          userRoles={config.userRoles}
+          onSaveRole={saveRole}
+          onSaveUserRole={saveUserRole}
+          onClose={closeAccess}
         />
       )}
     </div>

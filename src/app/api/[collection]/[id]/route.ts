@@ -1,9 +1,14 @@
 import { NextResponse } from "next/server";
 import { getAdapter } from "@/lib/adapters";
 import { runPlaybooks } from "@/lib/playbooks";
+import { can } from "@/lib/auth";
+import { permissionForPatch } from "@/lib/rbac";
 import type { CollectionId } from "@/lib/types";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+const forbidden = () => NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
 const COLLECTIONS: CollectionId[] = ["content", "launch", "tickets", "okr", "quarterPlan", "topicOwners"];
 
@@ -20,6 +25,8 @@ export async function PATCH(
   }
   const body = await req.json().catch(() => ({}));
   const fields = body?.fields ?? {};
+  const needed = permissionForPatch(params.collection, Object.keys(fields));
+  if (!(await can(needed))) return forbidden();
   const adapter = getAdapter();
   const record = await adapter.update(params.collection, params.id, fields);
 
@@ -38,6 +45,7 @@ export async function DELETE(
   if (!isCollection(params.collection)) {
     return NextResponse.json({ error: "Unknown collection" }, { status: 404 });
   }
+  if (!(await can("item.delete"))) return forbidden();
   await getAdapter().remove(params.collection, params.id);
   return NextResponse.json({ ok: true });
 }
