@@ -1,9 +1,20 @@
 # Content Workspace — a spreadsheet frontend over Jira
 
 A Monday/Asana-style surface over a Jira project. It recreates the team's
-working spreadsheet (content pipeline, OKRs, quarterly plan, topic owners) as
-editable, filterable grids, with the goal of layering Jira's workflow muscle
-(assign, watch, remind, automate) behind a friendly UI.
+working spreadsheets (content pipeline, GTM launch workback, OKRs, quarterly
+plan, topic owners) as editable, filterable grids, and layers Jira's workflow
+muscle (assign, automate, govern) behind a friendly UI.
+
+Built so far (all mock-backed, ready to flip to Jira):
+- Monday-style boards: colored status chips, grouping, person avatars, autosave
+- Search + stackable per-column filters
+- Drag-and-drop: rows (incl. across groups), columns, tabs, dropdown choices
+- Per-board customization (no code): edit/recolor/reorder dropdown choices,
+  manage owners — via the **⚙ Customize** panel
+- Workflow **automations (playbooks)**: multi-stage, cross-team ticket creation
+  (the Demand Gen Webinar runbook, encoded)
+- **RBAC** (Model A): editable roles + server-side enforcement; dev identity
+  switcher standing in for Okta SSO
 
 ## Docs
 
@@ -15,23 +26,32 @@ editable, filterable grids, with the goal of layering Jira's workflow muscle
 
 ## Status
 
-**Milestone 1 — editable grid with write-back (mock-backed).** All four tabs
-render and edit; edits autosave through a pluggable data adapter. The adapter
-is currently the in-memory `MockAdapter` (seeded from the real spreadsheet) so
-we can build and demo before Jira access is confirmed.
+**Mock-backed and feature-rich; awaiting the Jira service account to go live.**
+All six surfaces render and edit; everything autosaves through a pluggable data
+adapter. The adapter is currently the in-memory `MockAdapter` (seeded from the
+real spreadsheets) so we can build and demo before Jira access is wired up.
 
 ## Architecture
 
 ```
-UI (Next.js, src/app)
-   │  fetch /api/<collection>
+UI (Next.js, src/app)            ← Workspace, EditableGrid, Customize/Access modals
+   │  fetch /api/...
    ▼
-API routes (src/app/api/[collection])
-   │  getAdapter()
+API routes (src/app/api)         ← permission-gated (src/lib/auth.ts)
+   │  getAdapter()               ← also: runPlaybooks(), config-store
    ▼
-DataAdapter  ── MockAdapter   (active: JSON file in .data/)
-             └─ JiraAdapter   (stub: Jira Cloud REST API)
+DataAdapter  ── MockAdapter      (active: JSON file in .data/)
+             └─ JiraAdapter      (stub: Jira Cloud REST API)
 ```
+
+Key modules:
+- `src/lib/adapters/*` — the data seam (mock today, Jira tomorrow)
+- `src/lib/views.ts` — board definitions (columns, grouping, defaults)
+- `src/lib/config-store.ts` — persisted per-board customization (choices,
+  colors, column/tab order, owners) **and** roles/role-assignments
+- `src/lib/playbooks.ts` — the workflow automation engine
+- `src/lib/rbac.ts` + `src/lib/auth.ts` — the permission model + server-side
+  resolution of current user → role → permissions
 
 The whole point is the **`DataAdapter` seam** (`src/lib/adapters/types.ts`).
 The UI and API never talk to Jira directly — they call the adapter. Switching
@@ -40,10 +60,17 @@ backends is one env var:
 ```bash
 DATA_ADAPTER=jira          # default is "mock"
 JIRA_BASE_URL=https://taktak.atlassian.net
-JIRA_EMAIL=you@cribl.io
+JIRA_EMAIL=svc-bot@cribl.io   # the Jira service/bot account (Model A)
 JIRA_API_TOKEN=...         # id.atlassian.com/manage-profile/security/api-tokens
 JIRA_PROJECT_KEY=WEB
 ```
+
+**Auth note:** the app uses app-enforced RBAC (Model A) over a single Jira
+service account. Human login is currently a dev "Viewing as" switcher
+(`src/lib/auth.ts`, cookie-based) — intentionally insecure, for demos only. It
+will be replaced by **Okta SSO (OIDC)**, with Okta groups mapped to the roles in
+`src/lib/rbac.ts`. The dev switcher should be gated behind a flag before any
+production deploy.
 
 The Jira field mapping (e.g. `targetPrompt → summary`, `stage → workflow
 transition`, `owner → assignee`) is documented inline in
@@ -59,17 +86,24 @@ npm run dev      # http://localhost:3000
 Mock edits persist to `.data/db.json` (git-ignored). Delete that file to reset
 to the seed data.
 
-## Where the tabs come from
+## Where the boards come from
 
-Tabs are defined declaratively in `src/lib/views.ts` (columns, grouping,
-defaults). This is the layer teams will eventually customize per project.
+Boards are defined declaratively in `src/lib/views.ts` (columns, grouping,
+defaults). At runtime, `config-store.ts` layers per-board customizations on top
+(dropdown choices, colors, column/tab order, owners) so teams tailor a board
+without code. Mock data + config persist under `.data/` (git-ignored); delete it
+to reset.
 
 ## Roadmap
 
-- **M1 (done):** editable grids mirroring the spreadsheet tabs, mock-backed.
-- **M2:** wire `JiraAdapter` to the live `WEB` project (read + write + status
-  transitions) once IT confirms access.
-- **M3:** workflow features — assign, watch, reminders via Slack/email (both
-  are already connected in this environment).
-- **M4:** per-project customizable automations (e.g. "open tickets with Design
-  + Marketing Ops + PMM").
+- **Done (mock-backed):** editable boards; search/filter; drag-and-drop;
+  per-board customization; multi-stage workflow automations; RBAC with
+  server-side enforcement.
+- **Next:** wire `JiraAdapter` to the live `WEB` project (read + write + status
+  transitions) using the requested **service account + API token**.
+- **Then:** replace the dev identity switcher with **Okta SSO (OIDC)**; map Okta
+  groups → roles.
+- **Then:** automations open real cross-team Jira tickets; add reminders via
+  Slack/email; ingest a runbook doc to draft a playbook.
+- **Ongoing:** new boards on demand (campaigns, editorial calendar) — config,
+  not code.

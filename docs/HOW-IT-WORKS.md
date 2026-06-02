@@ -40,7 +40,7 @@ Why this matters to you:
 
 ## How a board is defined (and why new boards are basically free)
 
-Every board — Content Pipeline, Product Launches, OKRs — is described in a
+Every board — Content Pipeline, Launch Plan, OKRs — is described in a
 simple list of columns. In plain terms, a board definition says things like:
 
 - "Show a **Status** column, and it can be *Planning, Recommendations Created,
@@ -48,9 +48,10 @@ simple list of columns. In plain terms, a board definition says things like:
 - "Show an **Owner** column, and render it as people with avatars."
 - "**Group** the rows by Status."
 
-That's it. No new software. When we added the **Product Launches** board, we
-didn't build anything new — we just wrote a new column list. This is why the
-claim "infinitely customizable" is real and not marketing fluff:
+That's it. No new software. When we added the **Launch Plan** board (rebuilt
+from the real GTM launch spreadsheet), we didn't build anything new — we just
+wrote a new column list. This is why the claim "infinitely customizable" is real
+and not marketing fluff:
 
 - Want a **Campaigns** board? Describe its columns.
 - Want our **launch spreadsheet** as a board? Describe its columns.
@@ -65,22 +66,32 @@ file, not a software project.
 ## What's built today (the honest inventory)
 
 **Fully working:**
-- Five boards (Content Pipeline, Product Launches, OKRs, Quarterly Plan, Topic
-  Owners)
+- Six surfaces: **Content Pipeline**, **Launch Plan** (GTM workback tracker),
+  **⚡ Automations**, **OKRs**, **Quarterly Plan**, **Topic Owners**
 - Monday-style colored status chips, with sensible colors (Done = green, High /
   At Risk = red, etc.)
 - Grouping with collapsible sections and per-group counts
 - People columns with colored avatars (handles multiple people per cell)
 - Inline editing with **autosave** — every change is saved as you make it
-- **Search** across a whole board
-- **Per-column filters** (multi-select), stackable, with a live result counter
-- Add / delete items
-- Direct links out to the underlying Jira ticket
+- **Search** across a whole board + **per-column filters** (multi-select),
+  stackable, with a live result counter
+- Add / delete items, with direct links out to the underlying Jira ticket
+- **Drag-and-drop**: reorder rows (incl. moving between groups), columns, tabs,
+  and the choices inside a dropdown — all persisted
+- **Per-board customization (no code):** add/remove/recolor dropdown choices,
+  reorder them, and manage the shared owner list — via the **⚙ Customize** panel
+- **Workflow automations (playbooks):** multi-stage, cross-team ticket creation
+  driven by Work Type + status (see below)
+- **Role-based access control:** editable roles, a Roles & Access admin panel,
+  and server-side enforcement on every change (see "Security & access")
 
-**Deliberately mocked (waiting on Jira access):**
-- The data itself. Today it's realistic sample data stored in a small file. On a
-  hosted demo it lives in memory and resets periodically — which is fine for
-  showing the experience, and goes away entirely once Jira is connected.
+**Deliberately mocked (waiting on the Jira service account):**
+- The data itself, and the tickets automations open. Today it's realistic sample
+  data in a small file; on a hosted demo it lives in memory and resets
+  periodically — fine for showing the experience, and it goes away once Jira is
+  connected.
+- **Login.** Identity is a dev "Viewing as" switcher today; real login is Okta
+  SSO (the roles themselves already work).
 
 ---
 
@@ -171,15 +182,19 @@ scheme stays on as a backstop beneath this friendlier layer.
 
 ## The roadmap (where this can go)
 
-1. **Now:** the experience, mock-backed. ✅
-2. **Next:** live Jira read + write (needs the token).
-3. **Then — the payoff:** the things spreadsheets can't do —
-   - assign work that actually notifies the owner,
-   - due-date **reminders** via Slack or email,
-   - **automations** like "when a content piece hits *Recommendations Created*,
-     open linked tickets for Design, Marketing Ops, and PMM."
-4. **Ongoing:** new boards on demand (campaigns, launches, editorial calendar),
-   each a quick config change on the same engine.
+1. **Done (mock-backed):** the full experience — boards, editing, search/filter,
+   drag-and-drop, per-board customization, multi-stage **automations**, and
+   **role-based access**. ✅
+2. **Next:** point the adapter at the live `WEB` project using the **Jira
+   service account + API token** (now requested) — read, write, status
+   transitions.
+3. **Then:** swap the dev "Viewing as" switcher for **Okta SSO**, with Okta
+   groups mapped to the roles we already built.
+4. **Then — the payoff at scale:** automations open *real* tickets across teams;
+   add **reminders** via Slack/email; ingest a runbook doc to draft a new
+   playbook automatically.
+5. **Ongoing:** new boards on demand (campaigns, editorial calendar), each a
+   quick config change on the same engine.
 
 ---
 
