@@ -9,7 +9,20 @@ import { DEMO_USERS, DEFAULT_USER_ID, type DemoUser } from "@/lib/rbac";
 // demoed. Once Okta SSO (OIDC) is wired up, getCurrentUser() reads the verified
 // session/token instead, and the rest of this file is unchanged.
 
+// Dev login (the "Viewing as" switcher) lets the client pick any identity — it
+// is NOT secure and must be explicitly enabled. Off by default, so a deploy
+// without Okta can't be impersonated: everyone is a read-only guest until real
+// SSO is wired up.
+export function devLoginEnabled(): boolean {
+  const v = (process.env.DEV_LOGIN ?? "").toLowerCase();
+  return v === "true" || v === "1";
+}
+
+const GUEST: DemoUser = { id: "guest", name: "Guest" };
+
 export function getCurrentUser(): DemoUser {
+  // When real SSO (Okta OIDC) is added, this reads the verified session instead.
+  if (!devLoginEnabled()) return GUEST; // resolves to the Viewer role
   const id = cookies().get("devUser")?.value || DEFAULT_USER_ID;
   return DEMO_USERS.find((u) => u.id === id) ?? DEMO_USERS.find((u) => u.id === DEFAULT_USER_ID)!;
 }

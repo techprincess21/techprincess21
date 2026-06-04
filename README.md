@@ -22,6 +22,8 @@ Built so far (all mock-backed, ready to flip to Jira):
   with the team (the pitch + how to use the app).
 - **[docs/HOW-IT-WORKS.md](docs/HOW-IT-WORKS.md)** — plain-language explanation
   of the architecture and what it takes to go live with Jira.
+- **[docs/SECURITY.md](docs/SECURITY.md)** — one-pager for the IT/Okta
+  conversation: auth, RBAC, the Jira credential, and what to provision.
 - This README — technical setup, run, and deploy steps.
 
 ## Status
@@ -69,8 +71,18 @@ JIRA_PROJECT_KEY=WEB
 service account. Human login is currently a dev "Viewing as" switcher
 (`src/lib/auth.ts`, cookie-based) — intentionally insecure, for demos only. It
 will be replaced by **Okta SSO (OIDC)**, with Okta groups mapped to the roles in
-`src/lib/rbac.ts`. The dev switcher should be gated behind a flag before any
-production deploy.
+`src/lib/rbac.ts`. See **[docs/SECURITY.md](docs/SECURITY.md)**.
+
+The dev switcher is gated behind an env var and is **off by default**:
+
+```bash
+DEV_LOGIN=true   # enable the "Viewing as" impersonation switcher (demos only)
+```
+
+When unset, the switcher is hidden and the server ignores the impersonation
+cookie — every request resolves to a read-only **Guest (Viewer)**, so a deploy
+without Okta can't be impersonated. Set `DEV_LOGIN=true` (e.g. in the Vercel
+project's env) to demo the full role-based experience before SSO is wired up.
 
 The Jira field mapping (e.g. `targetPrompt → summary`, `stage → workflow
 transition`, `owner → assignee`) is documented inline in

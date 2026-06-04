@@ -189,6 +189,11 @@ hides controls a user can't use, but the server is the real gate (a Viewer who
 forged a request still gets a 403). When live on Jira, Jira's own permission
 scheme stays on as a backstop beneath this friendlier layer.
 
+The dev "Viewing as" switcher is **off by default** (gated by a `DEV_LOGIN`
+flag); without it, everyone is a read-only guest until Okta SSO is connected — so
+a shared link can't be impersonated. For the IT/Okta conversation, see
+**SECURITY.md**.
+
 ## The roadmap (where this can go)
 
 1. **Done (mock-backed):** the full experience — boards, editing, search/filter,

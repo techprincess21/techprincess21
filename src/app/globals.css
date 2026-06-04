@@ -88,6 +88,10 @@ body {
   cursor: pointer;
 }
 
+.who-static {
+  font-weight: 600;
+}
+
 .who-role {
   font-size: 11px;
   font-weight: 700;

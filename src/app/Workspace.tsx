@@ -18,10 +18,12 @@ export default function Workspace({
   views,
   adapter,
   me,
+  devLogin = false,
 }: {
   views: ViewDef[];
   adapter: string;
   me: Me;
+  devLogin?: boolean;
 }) {
   const [config, setConfig] = useState<AppConfig | null>(null);
   const [dragTab, setDragTab] = useState<string | null>(null);
@@ -133,14 +135,18 @@ export default function Workspace({
         <h1>Content Workspace</h1>
         <span className="badge">{adapter === "jira" ? "Live: Jira" : "Mock data"}</span>
         <div className="who">
-          <span className="who-label">Viewing as</span>
-          <select className="who-select" value={me.id} onChange={(e) => switchUser(e.target.value)}>
-            {DEMO_USERS.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.name}
-              </option>
-            ))}
-          </select>
+          <span className="who-label">{devLogin ? "Viewing as" : "Signed in as"}</span>
+          {devLogin ? (
+            <select className="who-select" value={me.id} onChange={(e) => switchUser(e.target.value)}>
+              {DEMO_USERS.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.name}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <span className="who-static">{me.name}</span>
+          )}
           <span className="who-role">{me.role}</span>
           {canManageRoles && (
             <button className="btn btn-ghost who-manage" onClick={() => setAccessOpen(true)}>
@@ -151,7 +157,9 @@ export default function Workspace({
       </div>
       <p className="app-sub">
         A spreadsheet-style view over your Jira <code>WEB</code> project. Edits save automatically.
-        <span className="demo-note"> · “Viewing as” is a demo stand-in for Okta SSO.</span>
+        {devLogin && (
+          <span className="demo-note"> · “Viewing as” is a demo stand-in for Okta SSO.</span>
+        )}
       </p>
 
       <div className="tabs">
