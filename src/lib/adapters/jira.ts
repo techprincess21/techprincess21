@@ -1,72 +1,197 @@
 import type { CollectionId, FieldValue, Record } from "@/lib/types";
 import type { DataAdapter } from "./types";
 
-// Jira Cloud adapter — NOT YET ACTIVE.
+// Jira Cloud adapter.
 //
-// This is the real backend we'll switch to once IT confirms access. It
-// implements the exact same DataAdapter interface as MockAdapter, so flipping
-// DATA_ADAPTER=jira is the only change the rest of the app needs.
+// v1 strategy — schema-light and works on a vanilla project (no custom fields to
+// set up): every app record is stored as a Jira issue in JIRA_PROJECT_KEY, where
+//   • the issue summary  = a human-readable title for the record
+//   • the issue labels   = include `cw-<collection>` so we can list per board
+//   • the issue description holds the full field set as JSON (round-trips exactly)
 //
-// To activate, set these environment variables (e.g. in .env.local):
-//   DATA_ADAPTER=jira
-//   JIRA_BASE_URL=https://taktak.atlassian.net
-//   JIRA_EMAIL=you@cribl.io
-//   JIRA_API_TOKEN=<token from id.atlassian.com/manage-profile/security/api-tokens>
-//   JIRA_PROJECT_KEY=WEB
+// This proves the end-to-end round-trip (app <-> Jira) immediately. Mapping
+// individual fields onto native Jira fields (assignee, priority, workflow
+// status transitions) is a follow-up that needs each project's specific schema;
+// until then, status etc. live in the JSON so the app behaves identically to the
+// mock, but the data now lives in — and is governed by — Jira.
 //
-// FIELD MAPPING (app field  ->  Jira field)
-// -----------------------------------------------------------------------------
-//   targetPrompt    -> summary
-//   keyword         -> custom field (e.g. customfield_XXXXX "Keyword")
-//   stage           -> workflow status (transition, not a plain field write)
-//   owner           -> assignee (accountId; resolve display name -> account)
-//   type/format     -> labels or custom select fields
-//   quarter         -> custom field or fixVersion / sprint
-//   priorityLevel   -> priority
-//   publishedUrl    -> custom field (URL type)
-//   jiraKey         -> the issue key itself (read-only)
-//
-// The trickiest mappings are (a) `stage`, which must go through the issue's
-// available transitions rather than a field PUT, and (b) `owner`, which needs a
-// display-name -> accountId lookup. We'll resolve the exact customfield IDs by
-// calling GET /rest/api/3/field against the live instance.
+// Activate with: DATA_ADAPTER=jira, JIRA_BASE_URL, JIRA_EMAIL, JIRA_API_TOKEN,
+// JIRA_PROJECT_KEY.
 
-const NOT_READY =
-  "JiraAdapter is not active yet. Set DATA_ADAPTER=jira plus JIRA_* env vars once IT confirms access. See src/lib/adapters/jira.ts for the field mapping.";
+const LABEL = (collection: string) => `cw-${collection}`;
+
+// Which field to use as the issue summary (title) per collection.
+const TITLE_FIELD: { [c: string]: string } = {
+  content: "targetPrompt",
+  launch: "deliverable",
+  tickets: "summary",
+  okr: "keyResult",
+  quarterPlan: "item",
+  topicOwners: "topic",
+};
+
+interface JiraConfig {
+  baseUrl: string;
+  email: string;
+  token: string;
+  projectKey: string;
+}
+
+function readConfig(): JiraConfig {
+  const baseUrl = (process.env.JIRA_BASE_URL ?? "").replace(/\/+$/, "");
+  const email = process.env.JIRA_EMAIL ?? "";
+  const token = process.env.JIRA_API_TOKEN ?? "";
+  const projectKey = process.env.JIRA_PROJECT_KEY ?? "";
+  if (!baseUrl || !email || !token || !projectKey) {
+    throw new Error(
+      "JiraAdapter misconfigured: set JIRA_BASE_URL, JIRA_EMAIL, JIRA_API_TOKEN, JIRA_PROJECT_KEY."
+    );
+  }
+  return { baseUrl, email, token, projectKey };
+}
+
+// ---- ADF helpers: stash/extract JSON in an issue description code block ----
+function jsonToAdf(json: string) {
+  return {
+    type: "doc",
+    version: 1,
+    content: [
+      {
+        type: "codeBlock",
+        attrs: { language: "json" },
+        content: [{ type: "text", text: json }],
+      },
+    ],
+  };
+}
+
+function textFromAdf(node: unknown): string {
+  if (!node || typeof node !== "object") return "";
+  const n = node as { type?: string; text?: string; content?: unknown[] };
+  if (n.type === "text" && typeof n.text === "string") return n.text;
+  if (Array.isArray(n.content)) return n.content.map(textFromAdf).join("");
+  return "";
+}
+
+function fieldsFromIssue(issue: any): { [key: string]: FieldValue } {
+  const raw = textFromAdf(issue?.fields?.description);
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === "object") return parsed;
+  } catch {
+    // Description wasn't ours (e.g. issue created in Jira directly) — fall back.
+  }
+  return { summary: issue?.fields?.summary ?? "" };
+}
 
 export class JiraAdapter implements DataAdapter {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async list(_collection: CollectionId): Promise<Record[]> {
-    // Planned: JQL search via POST /rest/api/3/search, then map issue fields
-    // back into our generic `fields` shape using the mapping above.
-    throw new Error(NOT_READY);
+  private issueTypeId: string | null = null;
+
+  private async api(path: string, init?: RequestInit): Promise<any> {
+    const { baseUrl, email, token } = readConfig();
+    const auth = Buffer.from(`${email}:${token}`).toString("base64");
+    const res = await fetch(`${baseUrl}${path}`, {
+      ...init,
+      headers: {
+        Authorization: `Basic ${auth}`,
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        ...(init?.headers ?? {}),
+      },
+      cache: "no-store",
+    });
+    const text = await res.text();
+    if (!res.ok) {
+      throw new Error(`Jira ${init?.method ?? "GET"} ${path} -> ${res.status}: ${text.slice(0, 300)}`);
+    }
+    return text ? JSON.parse(text) : {};
   }
 
-  async create(
-    _collection: CollectionId,
-    _fields: { [key: string]: FieldValue }
-  ): Promise<Record> {
-    // Planned: POST /rest/api/3/issue with project=JIRA_PROJECT_KEY.
-    throw new Error(NOT_READY);
+  // Discover a usable (non-subtask) issue type for the project; cache it.
+  private async getIssueTypeId(): Promise<string> {
+    if (this.issueTypeId) return this.issueTypeId;
+    const { projectKey } = readConfig();
+    const project = await this.api(`/rest/api/3/project/${encodeURIComponent(projectKey)}`);
+    const types: any[] = project.issueTypes ?? [];
+    const usable = types.find((t) => !t.subtask && /task|story/i.test(t.name)) ?? types.find((t) => !t.subtask) ?? types[0];
+    if (!usable) throw new Error(`No issue types available in project ${projectKey}.`);
+    this.issueTypeId = usable.id;
+    return usable.id;
+  }
+
+  private title(collection: CollectionId, fields: { [key: string]: FieldValue }): string {
+    const key = TITLE_FIELD[collection];
+    const raw = (key && fields[key] != null ? String(fields[key]) : "") || "(untitled)";
+    return raw.slice(0, 240);
+  }
+
+  // Enhanced JQL search, with a fallback to the legacy endpoint.
+  private async search(jql: string): Promise<any[]> {
+    const body = JSON.stringify({ jql, maxResults: 100, fields: ["summary", "description", "labels"] });
+    try {
+      const d = await this.api(`/rest/api/3/search/jql`, { method: "POST", body });
+      return d.issues ?? [];
+    } catch {
+      const d = await this.api(`/rest/api/3/search`, { method: "POST", body });
+      return d.issues ?? [];
+    }
+  }
+
+  async list(collection: CollectionId): Promise<Record[]> {
+    const { projectKey } = readConfig();
+    const jql = `project = "${projectKey}" AND labels = "${LABEL(collection)}" ORDER BY created ASC`;
+    const issues = await this.search(jql);
+    return issues.map((issue) => ({
+      id: issue.key,
+      jiraKey: issue.key,
+      fields: fieldsFromIssue(issue),
+    }));
+  }
+
+  async create(collection: CollectionId, fields: { [key: string]: FieldValue }): Promise<Record> {
+    const { projectKey } = readConfig();
+    const issuetypeId = await this.getIssueTypeId();
+    const created = await this.api(`/rest/api/3/issue`, {
+      method: "POST",
+      body: JSON.stringify({
+        fields: {
+          project: { key: projectKey },
+          issuetype: { id: issuetypeId },
+          summary: this.title(collection, fields),
+          description: jsonToAdf(JSON.stringify(fields)),
+          labels: [LABEL(collection)],
+        },
+      }),
+    });
+    return { id: created.key, jiraKey: created.key, fields };
   }
 
   async update(
-    _collection: CollectionId,
-    _id: string,
-    _fields: { [key: string]: FieldValue }
+    collection: CollectionId,
+    id: string,
+    fields: { [key: string]: FieldValue }
   ): Promise<Record> {
-    // Planned: PUT /rest/api/3/issue/{key} for field edits, and
-    // POST /rest/api/3/issue/{key}/transitions for `stage` changes.
-    throw new Error(NOT_READY);
+    // Read-merge-write so partial updates preserve the rest of the JSON.
+    const issue = await this.api(`/rest/api/3/issue/${id}?fields=summary,description`);
+    const merged = { ...fieldsFromIssue(issue), ...fields };
+    await this.api(`/rest/api/3/issue/${id}`, {
+      method: "PUT",
+      body: JSON.stringify({
+        fields: {
+          summary: this.title(collection, merged),
+          description: jsonToAdf(JSON.stringify(merged)),
+        },
+      }),
+    });
+    return { id, jiraKey: id, fields: merged };
   }
 
-  async remove(_collection: CollectionId, _id: string): Promise<void> {
-    // Planned: DELETE /rest/api/3/issue/{key} (or transition to a closed state).
-    throw new Error(NOT_READY);
+  async remove(_collection: CollectionId, id: string): Promise<void> {
+    await this.api(`/rest/api/3/issue/${id}`, { method: "DELETE" });
   }
 
   async reorder(_collection: CollectionId, _ids: string[]): Promise<void> {
-    // Planned: Jira ranking via the Agile API (rank issue before/after another).
-    throw new Error(NOT_READY);
+    // v1: row order isn't persisted to Jira yet (would use the Agile rank API).
+    // No-op so the UI stays responsive; list() returns issues in created order.
   }
 }
