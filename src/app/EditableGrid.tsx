@@ -81,31 +81,57 @@ export default function EditableGrid({
 
   const childLink = view.childLink;
 
+  // Sync status (Jira is the source of truth; we re-read it on demand/focus).
+  const [syncing, setSyncing] = useState(false);
+  const [lastSynced, setLastSynced] = useState<Date | null>(null);
+
   function reloadChildren() {
     if (!childLink) return;
-    fetch(`/api/${childLink.collection}`)
+    fetch(`/api/${childLink.collection}`, { cache: "no-store" })
       .then((r) => r.json())
       .then((d) => setChildRecords(d.records ?? []))
       .catch(() => {});
   }
 
-  useEffect(() => {
-    if (!childLink) {
-      setChildRecords([]);
-      return;
+  // Read the board (and its child records) fresh from the backend/Jira.
+  async function loadAll() {
+    setSyncing(true);
+    try {
+      const d = await (await fetch(`/api/${view.collection}`, { cache: "no-store" })).json();
+      setRecords(d.records ?? []);
+      if (childLink) {
+        const cd = await (await fetch(`/api/${childLink.collection}`, { cache: "no-store" })).json();
+        setChildRecords(cd.records ?? []);
+      } else {
+        setChildRecords([]);
+      }
+      setLastSynced(new Date());
+    } catch {
+      setRecords((r) => r ?? []);
+    } finally {
+      setSyncing(false);
     }
-    let cancelled = false;
-    fetch(`/api/${childLink.collection}`)
-      .then((r) => r.json())
-      .then((d) => {
-        if (!cancelled) setChildRecords(d.records ?? []);
-      })
-      .catch(() => {});
+  }
+
+  // Load on mount / board switch.
+  useEffect(() => {
+    loadAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view.id]);
+
+  // Re-sync when the tab regains focus, so changes made directly in Jira show up.
+  useEffect(() => {
+    const onFocus = () => {
+      if (document.visibilityState === "visible") loadAll();
+    };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onFocus);
     return () => {
-      cancelled = true;
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onFocus);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [childLink?.collection]);
+  }, [view.id]);
 
   const childrenFor = (rec: Record): Record[] => {
     if (!childLink) return [];
@@ -174,21 +200,6 @@ export default function EditableGrid({
     for (const c of byKey.values()) out.push(c);
     return out;
   }, [columnOrder, view.columns]);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch(`/api/${view.collection}`)
-      .then((r) => r.json())
-      .then((d) => {
-        if (!cancelled) setRecords(d.records ?? []);
-      })
-      .catch(() => {
-        if (!cancelled) setRecords([]);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [view.collection]);
 
   // Reset filters when switching boards.
   useEffect(() => {
@@ -430,6 +441,16 @@ export default function EditableGrid({
             ⚙ Customize
           </button>
         )}
+
+        <button
+          className="btn btn-ghost sync-btn"
+          onClick={loadAll}
+          disabled={syncing}
+          title={lastSynced ? `Last synced ${lastSynced.toLocaleTimeString()}` : "Sync with Jira"}
+        >
+          <span className={`sync-icon ${syncing ? "spinning" : ""}`}>↻</span>
+          {syncing ? "Syncing…" : "Sync"}
+        </button>
 
         <span className="result-count">
           {totalShown === totalAll ? `${totalAll} items` : `${totalShown} of ${totalAll}`}

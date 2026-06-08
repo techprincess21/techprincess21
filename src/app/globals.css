@@ -443,6 +443,27 @@ body {
   font-weight: 600;
 }
 
+.sync-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sync-icon {
+  display: inline-block;
+  font-size: 14px;
+}
+
+.sync-icon.spinning {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .result-count {
   margin-left: auto;
   color: var(--muted);
