@@ -1,6 +1,6 @@
-# Content Workspace — a spreadsheet frontend over Jira
+# Goatsana — a friendly project workspace on top of Jira
 
-A Monday/Asana-style surface over a Jira project. It recreates the team's
+**Goatsana** is a Monday/Asana-style surface over a Jira project. It recreates the team's
 working spreadsheets (content pipeline, GTM launch workback, OKRs, quarterly
 plan, topic owners) as editable, filterable grids, and layers Jira's workflow
 muscle (assign, automate, govern) behind a friendly UI.

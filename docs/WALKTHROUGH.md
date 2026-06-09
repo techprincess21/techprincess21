@@ -1,4 +1,4 @@
-# Content Workspace — Team Walkthrough
+# Goatsana — Team Walkthrough
 
 *A friendly tour of the prototype. No technical background needed.*
 
@@ -6,8 +6,8 @@
 
 ## What you're looking at
 
-This is a working prototype of a project-tracking tool that **looks and feels
-like Monday.com or Asana** — colorful boards, inline editing, search & filters,
+**Goatsana** is a working prototype of a project-tracking tool that **looks and
+feels like Monday.com or Asana** — colorful boards, inline editing, search & filters,
 drag-and-drop, people, statuses, workflow automations, and role-based access —
 but it's designed to run on top of **Jira** underneath.
 

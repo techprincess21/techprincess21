@@ -132,7 +132,7 @@ export default function Workspace({
   return (
     <div className="app">
       <div className="app-header">
-        <h1>Content Workspace</h1>
+        <h1>Goatsana</h1>
         <span className="badge">{adapter === "jira" ? "Live: Jira" : "Mock data"}</span>
         <div className="who">
           <span className="who-label">{devLogin ? "Viewing as" : "Signed in as"}</span>
@@ -156,7 +156,7 @@ export default function Workspace({
         </div>
       </div>
       <p className="app-sub">
-        A spreadsheet-style view over your Jira <code>WEB</code> project. Edits save automatically.
+        A friendly, Monday/Asana-style workspace on top of Jira. Edits save automatically.
         {devLogin && (
           <span className="demo-note"> · “Viewing as” is a demo stand-in for Okta SSO.</span>
         )}

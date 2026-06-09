@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Content Workspace",
-  description: "A spreadsheet-style frontend over Jira (mock-backed today).",
+  title: "Goatsana",
+  description: "Goatsana — a friendly, Monday/Asana-style project workspace on top of Jira.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

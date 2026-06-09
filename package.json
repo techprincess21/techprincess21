@@ -1,8 +1,8 @@
 {
-  "name": "jira-spreadsheet-frontend",
+  "name": "goatsana",
   "version": "0.1.0",
   "private": true,
-  "description": "A Monday/Asana-style spreadsheet frontend over Jira. Mock-backed today, Jira-backed via a swappable data adapter.",
+  "description": "Goatsana — a Monday/Asana-style project workspace on top of Jira, via a swappable data adapter.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
