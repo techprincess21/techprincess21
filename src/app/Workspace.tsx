@@ -133,9 +133,10 @@ export default function Workspace({
           setImporting(false);
           return;
         }
-        total += d?.results?.[collection]?.created ?? 0;
+        const r = d?.results?.[collection];
+        total += (r?.created ?? 0) + (r?.updated ?? 0);
       }
-      setImportMsg(`✅ Imported ${total} deliverables into Jira (MW). Reloading…`);
+      setImportMsg(`✅ Synced ${total} deliverables to Jira (MW). Reloading…`);
       setTimeout(() => window.location.reload(), 1200);
     } catch (e) {
       setImportMsg("Import failed — see console.");

@@ -3,32 +3,62 @@ import type { DataAdapter } from "./types";
 
 // Jira Cloud adapter.
 //
-// v1 strategy — schema-light and works on a vanilla project (no custom fields to
-// set up): every app record is stored as a Jira issue in JIRA_PROJECT_KEY, where
-//   • the issue summary  = a human-readable title for the record
-//   • the issue labels   = include `cw-<collection>` so we can list per board
-//   • the issue description holds the full field set as JSON (round-trips exactly)
+// Each app record is a Jira issue in JIRA_PROJECT_KEY:
+//   • summary      = a human title (the record's title field, e.g. deliverable)
+//   • description  = human-readable field list (Status, Owner, dates, …) PLUS a
+//                    JSON code block at the end that round-trips the exact data
+//   • labels       = include `cw-<collection>` so we can list per board
 //
-// This proves the end-to-end round-trip (app <-> Jira) immediately. Mapping
-// individual fields onto native Jira fields (assignee, priority, workflow
-// status transitions) is a follow-up that needs each project's specific schema;
-// until then, status etc. live in the JSON so the app behaves identically to the
-// mock, but the data now lives in — and is governed by — Jira.
-//
-// Activate with: DATA_ADAPTER=jira, JIRA_BASE_URL, JIRA_EMAIL, JIRA_API_TOKEN,
-// JIRA_PROJECT_KEY.
+// Reading back, we parse the JSON code block (falling back to summary). This is
+// schema-light (works on a vanilla project, no custom fields) while still
+// looking like a real, readable issue in Jira's own UI.
 
 const LABEL = (collection: string) => `cw-${collection}`;
 
-// Which field to use as the issue summary (title) per collection.
+// Which field becomes the issue summary (title) per collection.
 const TITLE_FIELD: { [c: string]: string } = {
   content: "targetPrompt",
   launch: "deliverable",
   tickets: "summary",
+  launchSearch: "deliverable",
+  launchFall: "deliverable",
+  launchFedramp: "deliverable",
   okr: "keyResult",
   quarterPlan: "item",
   topicOwners: "topic",
 };
+
+// Pretty labels for the readable description; unknown keys are humanized.
+const FIELD_LABELS: { [k: string]: string } = {
+  status: "Status",
+  responsible: "Owner",
+  owner: "Owner",
+  phase: "Phase",
+  moment: "Stage",
+  workType: "Work Type",
+  startDate: "Start",
+  draftDue: "Draft Due",
+  approvalsDue: "All Approvals Due",
+  designComplete: "Design Complete",
+  webMopsComplete: "Web/MOPS Complete",
+  finalDate: "Final / Due",
+  dependency: "Dependency / Callout",
+  links: "Relevant Links",
+  keyword: "Keyword",
+  topic: "Topic",
+  subtopic: "Subtopic",
+  team: "Team",
+  sourceDeliverable: "From Deliverable",
+};
+
+// Internal-only fields we never render in the readable section.
+const HIDDEN = new Set(["autoTickets", "firedStages", "key", "jiraKey"]);
+
+function humanize(key: string): string {
+  return key
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/^./, (c) => c.toUpperCase());
+}
 
 interface JiraConfig {
   baseUrl: string;
@@ -50,38 +80,75 @@ function readConfig(): JiraConfig {
   return { baseUrl, email, token, projectKey };
 }
 
-// ---- ADF helpers: stash/extract JSON in an issue description code block ----
-function jsonToAdf(json: string) {
-  return {
-    type: "doc",
-    version: 1,
-    content: [
-      {
-        type: "codeBlock",
-        attrs: { language: "json" },
-        content: [{ type: "text", text: json }],
-      },
-    ],
-  };
+// ---- ADF: readable description + JSON round-trip block --------------------
+function buildDescription(collection: string, fields: { [k: string]: FieldValue }, json: string) {
+  const titleKey = TITLE_FIELD[collection];
+  const content: unknown[] = [];
+  for (const [k, v] of Object.entries(fields)) {
+    if (k === titleKey || HIDDEN.has(k)) continue;
+    const val = v == null ? "" : String(v);
+    if (!val) continue;
+    const label = FIELD_LABELS[k] ?? humanize(k);
+    content.push({
+      type: "paragraph",
+      content: [
+        { type: "text", text: `${label}: `, marks: [{ type: "strong" }] },
+        { type: "text", text: val },
+      ],
+    });
+  }
+  if (content.length === 0) {
+    content.push({ type: "paragraph", content: [{ type: "text", text: "—" }] });
+  }
+  content.push({ type: "rule" });
+  content.push({
+    type: "paragraph",
+    content: [{ type: "text", text: "Managed by Goatsana — structured data below.", marks: [{ type: "em" }] }],
+  });
+  content.push({ type: "codeBlock", attrs: { language: "json" }, content: [{ type: "text", text: json }] });
+  return { type: "doc", version: 1, content };
 }
 
-function textFromAdf(node: unknown): string {
+// Find the first codeBlock's text (where we stash the round-trip JSON).
+function firstCodeBlockText(node: unknown): string | null {
+  if (!node || typeof node !== "object") return null;
+  const n = node as { type?: string; text?: string; content?: unknown[] };
+  if (n.type === "codeBlock") return (n.content ?? []).map((c) => (c as { text?: string }).text ?? "").join("");
+  if (Array.isArray(n.content)) {
+    for (const c of n.content) {
+      const r = firstCodeBlockText(c);
+      if (r != null) return r;
+    }
+  }
+  return null;
+}
+
+function allText(node: unknown): string {
   if (!node || typeof node !== "object") return "";
   const n = node as { type?: string; text?: string; content?: unknown[] };
   if (n.type === "text" && typeof n.text === "string") return n.text;
-  if (Array.isArray(n.content)) return n.content.map(textFromAdf).join("");
+  if (Array.isArray(n.content)) return n.content.map(allText).join("");
   return "";
 }
 
 function fieldsFromIssue(issue: any): { [key: string]: FieldValue } {
-  const raw = textFromAdf(issue?.fields?.description);
+  const code = firstCodeBlockText(issue?.fields?.description);
+  if (code) {
+    try {
+      const parsed = JSON.parse(code);
+      if (parsed && typeof parsed === "object") return parsed;
+    } catch {
+      /* fall through */
+    }
+  }
+  // Fallback for issues whose whole description is JSON, or none at all.
   try {
-    const parsed = JSON.parse(raw);
+    const parsed = JSON.parse(allText(issue?.fields?.description));
     if (parsed && typeof parsed === "object") return parsed;
   } catch {
-    // Description wasn't ours (e.g. issue created in Jira directly) — fall back.
+    /* ignore */
   }
-  return { summary: issue?.fields?.summary ?? "" };
+  return { deliverable: issue?.fields?.summary ?? "", summary: issue?.fields?.summary ?? "" };
 }
 
 export class JiraAdapter implements DataAdapter {
@@ -107,13 +174,15 @@ export class JiraAdapter implements DataAdapter {
     return text ? JSON.parse(text) : {};
   }
 
-  // Discover a usable (non-subtask) issue type for the project; cache it.
   private async getIssueTypeId(): Promise<string> {
     if (this.issueTypeId) return this.issueTypeId;
     const { projectKey } = readConfig();
     const project = await this.api(`/rest/api/3/project/${encodeURIComponent(projectKey)}`);
     const types: any[] = project.issueTypes ?? [];
-    const usable = types.find((t) => !t.subtask && /task|story/i.test(t.name)) ?? types.find((t) => !t.subtask) ?? types[0];
+    const usable =
+      types.find((t) => !t.subtask && /task|story/i.test(t.name)) ??
+      types.find((t) => !t.subtask) ??
+      types[0];
     if (!usable) throw new Error(`No issue types available in project ${projectKey}.`);
     this.issueTypeId = usable.id;
     return usable.id;
@@ -125,7 +194,6 @@ export class JiraAdapter implements DataAdapter {
     return raw.slice(0, 240);
   }
 
-  // Enhanced JQL search, with a fallback to the legacy endpoint.
   private async search(jql: string): Promise<any[]> {
     const body = JSON.stringify({ jql, maxResults: 100, fields: ["summary", "description", "labels"] });
     try {
@@ -141,11 +209,7 @@ export class JiraAdapter implements DataAdapter {
     const { projectKey } = readConfig();
     const jql = `project = "${projectKey}" AND labels = "${LABEL(collection)}" ORDER BY created ASC`;
     const issues = await this.search(jql);
-    return issues.map((issue) => ({
-      id: issue.key,
-      jiraKey: issue.key,
-      fields: fieldsFromIssue(issue),
-    }));
+    return issues.map((issue) => ({ id: issue.key, jiraKey: issue.key, fields: fieldsFromIssue(issue) }));
   }
 
   async create(collection: CollectionId, fields: { [key: string]: FieldValue }): Promise<Record> {
@@ -158,7 +222,7 @@ export class JiraAdapter implements DataAdapter {
           project: { key: projectKey },
           issuetype: { id: issuetypeId },
           summary: this.title(collection, fields),
-          description: jsonToAdf(JSON.stringify(fields)),
+          description: buildDescription(collection, fields, JSON.stringify(fields)),
           labels: [LABEL(collection)],
         },
       }),
@@ -171,7 +235,6 @@ export class JiraAdapter implements DataAdapter {
     id: string,
     fields: { [key: string]: FieldValue }
   ): Promise<Record> {
-    // Read-merge-write so partial updates preserve the rest of the JSON.
     const issue = await this.api(`/rest/api/3/issue/${id}?fields=summary,description`);
     const merged = { ...fieldsFromIssue(issue), ...fields };
     await this.api(`/rest/api/3/issue/${id}`, {
@@ -179,7 +242,7 @@ export class JiraAdapter implements DataAdapter {
       body: JSON.stringify({
         fields: {
           summary: this.title(collection, merged),
-          description: jsonToAdf(JSON.stringify(merged)),
+          description: buildDescription(collection, merged, JSON.stringify(merged)),
         },
       }),
     });
@@ -191,7 +254,6 @@ export class JiraAdapter implements DataAdapter {
   }
 
   async reorder(_collection: CollectionId, _ids: string[]): Promise<void> {
-    // v1: row order isn't persisted to Jira yet (would use the Agile rank API).
-    // No-op so the UI stays responsive; list() returns issues in created order.
+    // v1: row order isn't persisted to Jira (would use the Agile rank API).
   }
 }

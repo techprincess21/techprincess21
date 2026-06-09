@@ -24,20 +24,27 @@ export async function POST(req: Request) {
   const collections = only ? [only] : LAUNCH_DEMO_COLLECTIONS;
 
   const adapter = getAdapter();
-  const results: { [c: string]: { created: number; skipped: number } } = {};
+  const results: { [c: string]: { created: number; updated: number } } = {};
 
   for (const collection of collections) {
     const rows = LAUNCH_DEMO_DATA[collection];
     if (!rows) continue;
     const existing = await adapter.list(collection as CollectionId);
-    const existingTitles = new Set(existing.map((r) => String(r.fields.deliverable ?? "")));
+    const byTitle = new Map(existing.map((r) => [String(r.fields.deliverable ?? ""), r]));
     let created = 0;
+    let updated = 0;
     for (const fields of rows) {
-      if (existingTitles.has(String(fields.deliverable))) continue;
-      await adapter.create(collection as CollectionId, fields);
-      created++;
+      const match = byTitle.get(String(fields.deliverable));
+      if (match) {
+        // Repair/refresh an existing issue (e.g. fix a missing summary).
+        await adapter.update(collection as CollectionId, match.id, fields);
+        updated++;
+      } else {
+        await adapter.create(collection as CollectionId, fields);
+        created++;
+      }
     }
-    results[collection] = { created, skipped: rows.length - created };
+    results[collection] = { created, updated };
   }
 
   return NextResponse.json({ results });
