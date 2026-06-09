@@ -132,7 +132,12 @@ export default function Workspace({
   return (
     <div className="app">
       <div className="app-header">
-        <h1>Goatsana</h1>
+        <div className="brand">
+          <span className="brand-mark" role="img" aria-label="Goatsana goat logo">
+            🐐
+          </span>
+          <h1>Goatsana</h1>
+        </div>
         <span className="badge">{adapter === "jira" ? "Live: Jira" : "Mock data"}</span>
         <div className="who">
           <span className="who-label">{devLogin ? "Viewing as" : "Signed in as"}</span>

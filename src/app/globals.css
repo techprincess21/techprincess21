@@ -39,6 +39,26 @@ body {
   margin-bottom: 4px;
 }
 
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Goat logo mark (Cribl's mascot). Swap in the official Cribl SVG here later. */
+.brand-mark {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 21px;
+  line-height: 1;
+  background: linear-gradient(135deg, #ff7a59 0%, #e5326e 100%);
+  box-shadow: 0 2px 8px rgba(229, 50, 110, 0.35);
+}
+
 .app-header h1 {
   font-size: 22px;
   font-weight: 700;
@@ -868,10 +888,23 @@ table.grid {
 }
 
 .del-col {
-  width: 34px;
-  min-width: 34px;
+  width: 40px;
+  min-width: 40px;
   border-right: none !important;
   background: var(--bg);
+  /* Pin to the right edge so Delete is always reachable on wide boards. */
+  position: sticky;
+  right: 0;
+  z-index: 2;
+  box-shadow: -6px 0 8px -6px rgba(0, 0, 0, 0.08);
+}
+
+.grid tr:hover .del-col {
+  background: var(--row-hover);
+}
+
+.grid thead .del-col {
+  z-index: 3;
 }
 
 /* Text / number inputs */
@@ -1030,9 +1063,9 @@ td.cell-select {
 .row-del {
   border: none;
   background: none;
-  color: #c4c7d0;
+  color: var(--muted);
   cursor: pointer;
-  font-size: 17px;
+  font-size: 18px;
   line-height: 1;
   padding: 6px 8px;
   width: 100%;
