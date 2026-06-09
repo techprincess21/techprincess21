@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 const forbidden = () => NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-const COLLECTIONS: CollectionId[] = ["content", "launch", "tickets", "okr", "quarterPlan", "topicOwners"];
+const COLLECTIONS: CollectionId[] = ["content", "launch", "tickets", "launchSearch", "launchFall", "launchFedramp", "okr", "quarterPlan", "topicOwners"];
 
 function isCollection(value: string): value is CollectionId {
   return (COLLECTIONS as string[]).includes(value);

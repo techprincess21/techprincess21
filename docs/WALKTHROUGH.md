@@ -68,6 +68,13 @@ Ops, Content/Social, Demand Gen) when a workflow fires — see "Automate the
 busywork" below. Grouped by team, each ticket comes pre-filled with the right
 people and a checklist.
 
+### Demo launches — Cribl Search, Fall '25 / CriblCon, FedRAMP
+Three real recent launches, each as its own board (deliverables grouped by
+phase), built from our prior launch spreadsheets. Great for showing "every
+launch becomes a project here." Admins can press **⬇ Import demo → Jira** once to
+create these deliverables as real issues in the Jira `MW` project (main
+deliverables only — no cross-team tickets).
+
 ### OKRs, Quarterly Plan, Topic Owners
 The rest of our planning surfaces, same treatment.
 

@@ -7,7 +7,7 @@ import type { CollectionId } from "@/lib/types";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const COLLECTIONS: CollectionId[] = ["content", "launch", "tickets", "okr", "quarterPlan", "topicOwners"];
+const COLLECTIONS: CollectionId[] = ["content", "launch", "tickets", "launchSearch", "launchFall", "launchFedramp", "okr", "quarterPlan", "topicOwners"];
 const isCollection = (v: string): v is CollectionId => (COLLECTIONS as string[]).includes(v);
 
 // Manually run the workflow playbook stage that matches a deliverable's current

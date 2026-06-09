@@ -1,4 +1,5 @@
 import type { CollectionId, Record } from "@/lib/types";
+import { LAUNCH_DEMO_DATA } from "@/lib/demo-launches";
 
 // Seed data extracted from the team's working spreadsheet (Cribl web/content
 // team). This is a representative subset so the grid is populated and the
@@ -678,4 +679,10 @@ export const SEED: { [K in CollectionId]: Record[] } = {
     { id: id(), fields: { topic: "SecOps Optimization", primaryPMM: "Carlo", secondaryPMM: "" } },
     { id: id(), fields: { topic: "SIEM Migration", primaryPMM: "Desi", secondaryPMM: "Holly" } },
   ],
+
+  // Demo launch boards — seeded from the same source the Jira import uses, so
+  // local (mock) dev shows them too.
+  launchSearch: LAUNCH_DEMO_DATA.launchSearch.map((fields) => ({ id: id(), fields })),
+  launchFall: LAUNCH_DEMO_DATA.launchFall.map((fields) => ({ id: id(), fields })),
+  launchFedramp: LAUNCH_DEMO_DATA.launchFedramp.map((fields) => ({ id: id(), fields })),
 };

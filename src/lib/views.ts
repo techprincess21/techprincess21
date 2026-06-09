@@ -1,4 +1,5 @@
 import type { ViewDef } from "@/lib/types";
+import { LAUNCH_DEMO_VIEWS } from "@/lib/demo-launches";
 
 // The "tabs". Each view is a configured surface over a collection: which
 // columns to show, how to group, and the defaults for new rows. This is the
@@ -144,6 +145,8 @@ export const VIEWS: ViewDef[] = [
       { key: "secondaryPMM", label: "Secondary PMM", type: "person", width: 180 },
     ],
   },
+  // Three demo launch boards (Cribl Search, Fall '25/CriblCon, FedRAMP).
+  ...LAUNCH_DEMO_VIEWS,
 ];
 
 export const VIEW_BY_ID = Object.fromEntries(VIEWS.map((v) => [v.id, v]));
