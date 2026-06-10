@@ -132,51 +132,78 @@ shape of what Cribl provides for telemetry experiences:
   stored with Cribl and **federated** across the other tools, stores, and
   databases it already sits in.
 
-[TODO: agentic telemetry positioning — drop in the agent-access / "agents as
-first-class consumers of telemetry" framing here.]
+Here's the kicker for the AI era: **AI cannot reason over data it cannot
+access.** As agents move into IT and Security — AI SOC, agentic operations, agent
+governance, LLM observability — they become first-class *consumers* of telemetry.
+They don't want a copy of the data or yet another integration; they want
+governed, scoped access to the data wherever it already lives. So the first
+challenge isn't centralizing everything. **The first challenge is access.**
+
+There's a clean analogy for what this kind of platform really is. AWS doesn't
+sell Netflix — AWS sells the platform that lets Netflix exist. I built a "Netflix"
+(a very small one, for my marketing team). What I kept wishing for was the "AWS"
+underneath it: the governed place for my experience to live and reach its data.
+For IT and Security telemetry, **Cribl is that platform.**
 
 ---
 
-*The rest of this section is your existing positioning, lightly teed up by the
-story above:*
+**Cribl: The AI Platform for Telemetry**
 
-For the last twenty years, every major IT and Security category has been built
-around an application. Observability platforms collected telemetry to power
-observability. SIEMs collected telemetry to power security analytics. APM
-platforms collected telemetry to understand application performance. Each
-application built its own telemetry infrastructure, its own data store, its own
-schema, workflows, and user experience. As a result, organizations duplicated
-data, infrastructure, integrations, and costs.
+For decades, IT and Security have been organized around applications —
+observability platforms, SIEMs, APM tools, analytics platforms, and countless
+custom solutions — each building its own telemetry infrastructure, data stores,
+schemas, and workflows. More tools meant more silos, more integrations, more
+cost.
 
-The AI era changes this model. AI agents do not care which application generated
-the data. They care about access to the data itself. As organizations deploy AI
-across IT and Security, telemetry becomes the common foundation that powers
-people, applications, and agents alike.
+The AI era changes the model. AI agents don't care which application generated
+the data; they care about access to the data itself. Telemetry becomes the
+critical raw material that powers people, applications, and agents alike — and the
+future gets built around platforms that make telemetry accessible, usable, and
+actionable wherever it lives.
 
-The future will not be built around individual applications. It will be built
-around telemetry platforms. Some experiences will be built by vendors, some by
-partners, some by customers — and many will be generated dynamically by AI. But
-all of them will require access to the same underlying telemetry.
+**Every IT and Security experience of the next decade will be built on a
+telemetry platform** — security, observability, analytics, automation, AI
+visibility, AI SOC, agentic operations, and applications we haven't imagined yet.
+Different experiences, same platform.
 
-Cribl is building that platform. **Cribl, the AI Platform for Telemetry,**
-connects people, applications, and agents to IT and Security data wherever it
-resides. Powered by the **Data Engine for IT and Security**, Cribl provides the
-universal telemetry layer that enables organizations to collect, manage, govern,
-access, and act on their data at AI scale.
+And telemetry needs its *own* platform. General-purpose data platforms
+(Snowflake, Databricks) aren't going anywhere for business data — but telemetry's
+volume, velocity, variety, and economics are a different beast. It's often
+collected before anyone knows whether it will ever be needed, so organizations
+can't predict which telemetry will matter. They need access to all of it.
+Telemetry doesn't replace the data platform; it creates the need for a telemetry
+platform.
 
-Security, observability, analytics, automation, and future applications are no
-longer separate destinations. They are experiences built on a common telemetry
-foundation.
+Cribl didn't set out to build another SIEM or observability tool. We started with
+a simpler problem — helping organizations control and unlock the value of their
+telemetry — and solving it required collection, routing, transformation,
+governance, storage, federation, search, and access. What emerged was larger than
+a pipeline or a set of products: **we built a platform.**
+
+Today, **Cribl, the AI Platform for Telemetry**, connects people, applications,
+and agents to IT and Security data wherever it resides. Powered by the **Data
+Engine for IT and Security**, it lets organizations collect, manage, govern,
+access, and act on their data at AI scale. Some experiences will be built by
+Cribl, some by partners, some by customers — and many generated dynamically by AI.
+All of them depend on the same platform to access and act on telemetry.
+
+The result is choice, control, and flexibility: adopt the best technologies you
+need today, and keep the freedom to embrace whatever comes next.
+
+The market is just now realizing it needs a telemetry platform. **Cribl already
+has one.**
 
 ---
+
+*Positioning now reflects the refined narrative + messaging pillars (Access
+Before Centralization; Telemetry Platform for the AI Era; Choice/Control/
+Flexibility) and the AWS/EC2 analogy from your strategy doc.*
 
 ### [TODO / fill-ins]
-- **Agentic telemetry**: the specifics you're working through — how agents get
-  scoped, governed access; what makes Cribl the safe substrate for autonomous
-  consumers of telemetry.
-- **Proof points / products**: name-drop the relevant Cribl pieces (Stream,
-  Edge, Search, Lake, federation) where they reinforce the "host + govern +
-  access, stored *and* federated" claim.
-- **Tighten the open**: if you want it punchier for a CMO audience, we can cut
-  straight to "The app was the easy part" as the first line.
-- **CTA**: where do you want readers to go next?
+- **Proof points / products**: if you want concrete name-drops (Stream, Edge,
+  Search, Lake) under "collection, routing, … federation, search, access," tell
+  me which to feature and I'll slot them in.
+- **Tighten the open**: optional — cut straight to "The app was the easy part" as
+  the very first line for a punchier CMO hook.
+- **CTA**: where should readers go next (demo, the platform page, a talk)?
+- **Title**: current is "The App Was the Easy Part" (alts in chat).
