@@ -116,19 +116,43 @@ const splitStages = (v: unknown) =>
     .filter(Boolean);
 
 // Pure: is there a stage to run right now for this deliverable? Returns the
+// A user-defined automation stored in config (created in the Automations
+// builder), plus helpers to combine built-in + custom playbooks.
+export interface ConfigAutomation {
+  id: string;
+  workType: string;
+  triggerStatus: string;
+  tickets: TicketDef[];
+}
+
+function customToPlaybook(a: ConfigAutomation): Playbook {
+  return { workType: a.workType, stages: [{ triggerStatus: a.triggerStatus, tickets: a.tickets }] };
+}
+
+// All effective playbooks: code-defined (with project/assignee overrides
+// applied) plus user-created ones.
+export function listPlaybooks(overrides?: PlaybookOverrides, custom?: ConfigAutomation[]): Playbook[] {
+  const builtins = Object.values(PLAYBOOKS).map((p) => applyOverrides(p, overrides));
+  return [...builtins, ...(custom ?? []).map(customToPlaybook)];
+}
+
 // stage + ticket count, or null. Used by the UI to decide whether to show the
 // "Open tickets" button, and by the server to validate a run request.
 export function eligibleStage(
   workType: unknown,
   status: unknown,
-  firedStages: unknown
+  firedStages: unknown,
+  playbooks?: Playbook[]
 ): { triggerStatus: string; tickets: TicketDef[]; count: number } | null {
-  const pb = PLAYBOOKS[String(workType ?? "")];
-  if (!pb) return null;
-  const stage = pb.stages.find((s) => s.triggerStatus === String(status ?? ""));
-  if (!stage) return null;
-  if (splitStages(firedStages).includes(stage.triggerStatus)) return null;
-  return { triggerStatus: stage.triggerStatus, tickets: stage.tickets, count: stage.tickets.length };
+  const list = playbooks ?? Object.values(PLAYBOOKS);
+  const fired = splitStages(firedStages);
+  for (const pb of list) {
+    if (pb.workType !== String(workType ?? "")) continue;
+    const stage = pb.stages.find((s) => s.triggerStatus === String(status ?? ""));
+    if (!stage || fired.includes(stage.triggerStatus)) continue;
+    return { triggerStatus: stage.triggerStatus, tickets: stage.tickets, count: stage.tickets.length };
+  }
+  return null;
 }
 
 function ticketKey(project: string): string {
@@ -147,17 +171,18 @@ export async function runPlaybooks(
   adapter: DataAdapter,
   collection: CollectionId,
   record: Record,
-  overrides?: PlaybookOverrides
+  overrides?: PlaybookOverrides,
+  custom?: ConfigAutomation[]
 ): Promise<{ record: Record; created: { key: string; team: string }[]; stage: string | null }> {
   const noop = { record, created: [] as { key: string; team: string }[], stage: null };
   if (collection !== "launch") return noop;
 
-  const base = PLAYBOOKS[String(record.fields.workType ?? "")];
-  if (!base) return noop;
-  const pb = applyOverrides(base, overrides);
-
+  const workType = String(record.fields.workType ?? "");
   const status = String(record.fields.status ?? "");
-  const stage = pb.stages.find((s) => s.triggerStatus === status);
+  const stage = listPlaybooks(overrides, custom)
+    .filter((pb) => pb.workType === workType)
+    .flatMap((pb) => pb.stages)
+    .find((s) => s.triggerStatus === status);
   if (!stage) return noop;
 
   const fired = splitCsv(record.fields.firedStages);

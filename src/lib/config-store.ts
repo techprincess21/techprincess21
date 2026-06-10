@@ -2,6 +2,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { VIEWS } from "@/lib/views";
 import { DEFAULT_ROLES, DEFAULT_USER_ROLES } from "@/lib/rbac";
+import type { ConfigAutomation } from "@/lib/playbooks";
 
 // Per-board customization store.
 //
@@ -24,6 +25,8 @@ export interface AppConfig {
   // Automation builder overrides: per work type, per team -> target project /
   // assignees. Empty = use the code-defined playbook defaults.
   playbooks: { [workType: string]: { [team: string]: { project?: string; assignees?: string } } };
+  // User-created automations (added in the Automations builder).
+  automations: ConfigAutomation[];
 }
 
 const DATA_DIR = process.env.DATA_DIR || path.join(process.cwd(), ".data");
@@ -56,6 +59,7 @@ function defaultConfig(): AppConfig {
     roles: structuredClone(DEFAULT_ROLES),
     userRoles: { ...DEFAULT_USER_ROLES },
     playbooks: {},
+    automations: [],
   };
 }
 
@@ -76,6 +80,7 @@ export async function getConfig(): Promise<AppConfig> {
       roles: { ...base.roles, ...(saved.roles ?? {}) },
       userRoles: { ...base.userRoles, ...(saved.userRoles ?? {}) },
       playbooks: saved.playbooks ?? {},
+      automations: saved.automations ?? [],
     };
   } catch {
     cache = base;
@@ -156,6 +161,20 @@ export async function setPlaybookOverride(
   const wt = cfg.playbooks[workType] ?? {};
   wt[team] = { ...(wt[team] ?? {}), ...override };
   cfg.playbooks[workType] = wt;
+  await persist();
+  return cfg;
+}
+
+export async function addAutomation(automation: ConfigAutomation) {
+  const cfg = await getConfig();
+  cfg.automations = [...cfg.automations.filter((a) => a.id !== automation.id), automation];
+  await persist();
+  return cfg;
+}
+
+export async function deleteAutomation(id: string) {
+  const cfg = await getConfig();
+  cfg.automations = cfg.automations.filter((a) => a.id !== id);
   await persist();
   return cfg;
 }

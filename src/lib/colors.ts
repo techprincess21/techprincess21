@@ -40,6 +40,8 @@ const SEMANTIC: { [value: string]: string } = {
   // launch workback statuses
   "in progress - on track": "#0086c0",
   "in progress - review": "#a25ddc",
+  "at risk": "#fdab3d",
+  blocked: "#e2445c",
   ongoing: "#fdab3d",
   scheduled: "#579bfc",
   "not started": "#c4c4c4",

@@ -64,4 +64,6 @@ export interface ViewDef {
   hidden?: boolean;
   // Render the automations builder instead of a data grid for this tab.
   builder?: boolean;
+  // Show the CMO summary widgets across the top of this board.
+  summary?: boolean;
 }

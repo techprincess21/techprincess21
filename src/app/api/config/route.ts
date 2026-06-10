@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import {
+  addAutomation,
+  deleteAutomation,
   getConfig,
   setColumnOptions,
   setColumnOrder,
@@ -24,7 +26,7 @@ const strList = (arr: unknown[]) => [...new Set(arr.map((o) => String(o)).filter
 const forbidden = () => NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
 const CUSTOMIZE = new Set(["options", "columns", "tabs", "color", "people"]);
-const ACCESS = new Set(["role", "userRole", "playbook"]);
+const ACCESS = new Set(["role", "userRole", "playbook", "automationAdd", "automationDelete"]);
 
 export async function PUT(req: Request) {
   const body = await req.json().catch(() => ({}));
@@ -61,6 +63,31 @@ export async function PUT(req: Request) {
       assignees: typeof body.assignees === "string" ? body.assignees : undefined,
     };
     return NextResponse.json({ config: await setPlaybookOverride(body.workType, body.team, override) });
+  }
+  if (body?.action === "automationAdd" && body.automation?.workType && body.automation?.triggerStatus) {
+    const a = body.automation;
+    const automation = {
+      id: typeof a.id === "string" && a.id ? a.id : `auto_${Date.now().toString(36)}`,
+      workType: String(a.workType),
+      triggerStatus: String(a.triggerStatus),
+      tickets: Array.isArray(a.tickets)
+        ? a.tickets
+            .filter((t: { team?: unknown; project?: unknown }) => t?.team && t?.project)
+            .map((t: { team: unknown; project: unknown; summary?: unknown; assignees?: unknown }) => ({
+              team: String(t.team),
+              project: String(t.project),
+              summary: String(t.summary ?? `${a.workType} task — {deliverable}`),
+              assignees: typeof t.assignees === "string" ? t.assignees : "",
+            }))
+        : [],
+    };
+    if (automation.tickets.length === 0) {
+      return NextResponse.json({ error: "Add at least one ticket (team + project)." }, { status: 400 });
+    }
+    return NextResponse.json({ config: await addAutomation(automation) });
+  }
+  if (body?.action === "automationDelete" && typeof body.id === "string") {
+    return NextResponse.json({ config: await deleteAutomation(body.id) });
   }
   return NextResponse.json({ error: "Invalid config update" }, { status: 400 });
 }

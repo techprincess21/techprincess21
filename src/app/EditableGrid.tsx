@@ -4,10 +4,11 @@ import { Fragment, useEffect, useMemo, useState } from "react";
 import type { ColumnDef, FieldValue, Record, ViewDef } from "@/lib/types";
 import { avatarColor, chipColor, groupColor, initials, splitPeople } from "@/lib/colors";
 import { STATUS_FIELD } from "@/lib/rbac";
-import { eligibleStage, type TicketDef } from "@/lib/playbooks";
+import { eligibleStage, type Playbook, type TicketDef } from "@/lib/playbooks";
 import MultiSelect from "./MultiSelect";
 import CustomizeModal from "./CustomizeModal";
 import ConfirmAutomationModal from "./ConfirmAutomationModal";
+import SummaryBar from "./SummaryBar";
 
 const JIRA_BASE = "https://taktak.atlassian.net";
 
@@ -20,6 +21,7 @@ export default function EditableGrid({
   columnOrder = [],
   colorOverrides = {},
   people = [],
+  playbooks,
   onSaveOptions,
   onSaveColumns,
   onSaveColor,
@@ -31,6 +33,7 @@ export default function EditableGrid({
   columnOrder?: string[];
   colorOverrides?: { [columnKey: string]: { [value: string]: string } };
   people?: string[];
+  playbooks?: Playbook[];
   onSaveOptions?: (columnKey: string, options: string[]) => void;
   onSaveColumns?: (keys: string[]) => void;
   onSaveColor?: (columnKey: string, value: string, hex: string | null) => void;
@@ -393,6 +396,8 @@ export default function EditableGrid({
       )}
       <p className="view-desc">{view.description}</p>
 
+      {view.summary && <SummaryBar records={records} />}
+
       <div className="board-toolbar">
         {canCreate && (
           <button className="btn btn-primary" onClick={() => addRow(undefined)}>
@@ -587,6 +592,7 @@ export default function EditableGrid({
                                         kids={kids}
                                         expanded={isExpanded}
                                         canRun={canRunAutomation}
+                                        playbooks={playbooks}
                                         onToggle={() => toggleExpand(rec.id)}
                                         onOpen={(stage, tickets) => setConfirm({ rec, stage, tickets })}
                                       />
@@ -666,6 +672,7 @@ function AutomationCell({
   kids,
   expanded,
   canRun,
+  playbooks,
   onToggle,
   onOpen,
 }: {
@@ -673,10 +680,11 @@ function AutomationCell({
   kids: Record[];
   expanded: boolean;
   canRun: boolean;
+  playbooks?: Playbook[];
   onToggle: () => void;
   onOpen: (stage: string, tickets: TicketDef[]) => void;
 }) {
-  const elig = eligibleStage(rec.fields.workType, rec.fields.status, rec.fields.firedStages);
+  const elig = eligibleStage(rec.fields.workType, rec.fields.status, rec.fields.firedStages, playbooks);
   const done = kids.filter((k) => String(k.fields.status ?? "") === "Done").length;
 
   if (!elig && kids.length === 0) return <span className="auto-none">—</span>;

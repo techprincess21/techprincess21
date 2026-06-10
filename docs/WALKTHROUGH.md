@@ -65,9 +65,16 @@ owner.
 ### ⚡ Automations
 Where you **define** the workflows: "for a work type, when it reaches a status,
 open these tickets in these teams' Jira projects." The Webinar automation, for
-example, opens tickets in **DESIGN**, **MOPSTICKET**, and **SM**. The tickets it
-opens show up **under their deliverable** on the board (expand the row), not
-here — this tab is the rule-builder.
+example, opens tickets in **DESIGN**, **MOPSTICKET**, and **SM**. Admins can edit
+the target projects/assignees and **create new automations** with **+ New
+automation**. The tickets a rule opens show up **under their deliverable** on the
+board (expand the row), not here — this tab is the rule-builder.
+
+### Project overview (CMO widgets)
+The launch boards have a row of summary widgets up top: **target launch date**,
+**health** (on track / needs attention), **progress**, **items needing
+attention** (At Risk / Blocked / In Review), and the **next milestone** — a
+one-glance status for leadership.
 
 ### Demo launches — Cribl Search, Fall '25 / CriblCon, FedRAMP
 Three real recent launches, each as its own board (deliverables grouped by

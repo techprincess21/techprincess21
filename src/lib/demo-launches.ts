@@ -11,6 +11,8 @@ const STATUS_OPTIONS = [
   "Ongoing",
   "In Progress - On Track",
   "In Progress - Review",
+  "At Risk",
+  "Blocked",
   "Completed",
 ];
 
@@ -34,6 +36,7 @@ export const LAUNCH_DEMO_VIEWS: ViewDef[] = [
       "GTM launch workback for Cribl Search — deliverables by phase, imported from the launch tracker.",
     groupBy: "phase",
     defaults: { status: "Not Started" },
+    summary: true,
     columns: LAUNCH_COLUMNS,
   },
   {
@@ -44,6 +47,7 @@ export const LAUNCH_DEMO_VIEWS: ViewDef[] = [
       "Cribl Fall 2025 launch + CriblCon, including the cribl.io → cribl.ai (TLD) migration tasks.",
     groupBy: "phase",
     defaults: { status: "Not Started" },
+    summary: true,
     columns: LAUNCH_COLUMNS,
   },
   {
@@ -54,6 +58,7 @@ export const LAUNCH_DEMO_VIEWS: ViewDef[] = [
       "FedRAMP / Cribl.Cloud Government launch — from the In-Process listing through ATO.",
     groupBy: "phase",
     defaults: { status: "Not Started" },
+    summary: true,
     columns: LAUNCH_COLUMNS,
   },
 ];

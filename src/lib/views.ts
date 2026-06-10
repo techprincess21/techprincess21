@@ -49,13 +49,14 @@ export const VIEWS: ViewDef[] = [
     groupBy: "phase",
     defaults: { status: "Not Started", phase: "Phase 1 — Message Validation & Early Readiness" },
     childLink: { collection: "tickets", parentField: "deliverable", childField: "sourceDeliverable" },
+    summary: true,
     columns: [
       { key: "jiraKey", label: "Jira", type: "jira", width: 110, readOnly: true },
       {
         key: "status",
         label: "Status",
         type: "select",
-        options: ["Not Started", "Scheduled", "Ongoing", "In Progress - On Track", "In Progress - Review", "Completed"],
+        options: ["Not Started", "Scheduled", "Ongoing", "In Progress - On Track", "In Progress - Review", "At Risk", "Blocked", "Completed"],
         width: 180,
       },
       { key: "deliverable", label: "Deliverable", type: "longtext", width: 300 },

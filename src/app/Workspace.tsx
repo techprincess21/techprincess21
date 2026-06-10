@@ -5,6 +5,7 @@ import type { ViewDef } from "@/lib/types";
 import type { AppConfig } from "@/lib/config-store";
 import { DEMO_USERS } from "@/lib/rbac";
 import { LAUNCH_DEMO_COLLECTIONS } from "@/lib/demo-launches";
+import { listPlaybooks } from "@/lib/playbooks";
 import EditableGrid from "./EditableGrid";
 import AccessModal from "./AccessModal";
 import AutomationsBuilder from "./AutomationsBuilder";
@@ -133,6 +134,20 @@ export default function Workspace({
         : p
     );
     putConfig({ action: "playbook", workType, team, ...patch });
+  }
+  async function addAutomation(automation: object) {
+    const res = await fetch("/api/config", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "automationAdd", automation }),
+    });
+    const d = await res.json().catch(() => null);
+    if (d?.config) setConfig(d.config);
+    else if (d?.error) alert(d.error);
+  }
+  function deleteAutomation(id: string) {
+    setConfig((p) => (p ? { ...p, automations: p.automations.filter((a) => a.id !== id) } : p));
+    putConfig({ action: "automationDelete", id });
   }
 
   function dropTab(targetId: string) {
@@ -266,8 +281,11 @@ export default function Workspace({
         <AutomationsBuilder
           description={active.description}
           overrides={config?.playbooks ?? {}}
+          automations={config?.automations ?? []}
           canEdit={canManageRoles}
           onSave={savePlaybook}
+          onAdd={addAutomation}
+          onDelete={deleteAutomation}
         />
       ) : active ? (
         <EditableGrid
@@ -278,6 +296,7 @@ export default function Workspace({
           columnOrder={activeColumns}
           colorOverrides={activeColors}
           people={people}
+          playbooks={listPlaybooks(config?.playbooks, config?.automations)}
           onSaveOptions={(columnKey, options) => saveOptions(active.id, columnKey, options)}
           onSaveColumns={(keys) => saveColumns(active.id, keys)}
           onSaveColor={(columnKey, value, hex) => saveColor(active.id, columnKey, value, hex)}

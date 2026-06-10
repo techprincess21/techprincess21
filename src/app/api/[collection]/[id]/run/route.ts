@@ -28,7 +28,13 @@ export async function POST(_req: Request, { params }: { params: { collection: st
   if (!rec) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const cfg = await getConfig();
-  const { record, created, stage } = await runPlaybooks(adapter, params.collection, rec, cfg.playbooks);
+  const { record, created, stage } = await runPlaybooks(
+    adapter,
+    params.collection,
+    rec,
+    cfg.playbooks,
+    cfg.automations
+  );
   if (created.length === 0) {
     return NextResponse.json({ error: "Nothing to run at this status" }, { status: 409 });
   }
