@@ -28,8 +28,14 @@ are about *the app*:
   robust engine my company already trusted. So the app became a friendly face
   over **Jira** — Jira does the heavy lifting (the data, the workflow), and my
   tool is the experience my team actually enjoys using.
-- **Where does it run?** I had to pick somewhere to host it (**Vercel**), stand
-  up a project, and wire up deploys.
+- **Where does it run — and what can it plug into?** I needed somewhere to
+  actually host the thing (**Vercel**). But "somewhere to host it" badly
+  undersells the problem. A host on its own is nothing. What mattered was that
+  the place it runs could securely **connect to our identity (SSO), enforce our
+  access rules, and reach our real data**. A server that can't plug into RBAC and
+  the system of record is just a demo on a URL. A host that *can* is the
+  beginning of a platform. This turned out to be one of the biggest deals of the
+  entire project — and the part I least expected.
 - **How does it get *access* to the data?** This was days of work that had
   nothing to do with features: requesting a **service account**, generating an
   **API token**, getting network/firewall rules opened, and a few false starts
@@ -57,6 +63,25 @@ was maybe 10–15 hours of back-and-forth — work that would traditionally be a
 multi-week, team-sized project. The platform questions took just as long, and
 those are the ones that actually decide whether the thing is safe to put in front
 of real people.)
+
+## "Somewhere to host it" is doing a lot of work in that sentence
+
+I want to dwell on the hosting piece, because it's the one I most underestimated
+and it's the one that clicked hardest for me.
+
+When you picture "hosting an app," you picture a server. A URL. Done. But a URL
+is a toy. The moment you want *real people* using it with *real data*, the host
+stops being a place to run code and becomes the connective tissue for everything
+that makes the app trustworthy: it's where the app authenticates against our
+**SSO**, where it enforces **who-can-do-what**, and where it securely reaches the
+**actual data** in our systems of record.
+
+In other words: the hard, valuable thing isn't a place to run code. It's a place
+to run code *that's already wired into identity, access control, and your data.*
+Get that, and building experiences on top becomes almost casual. Miss it, and
+every new app is a from-scratch security and integration project. That gap —
+between "a server" and "a governed home for experiences" — is the whole ballgame.
+
 
 ## This is the pattern that's about to hit everything
 
@@ -93,11 +118,22 @@ future won't be built around individual applications. It'll be built around the
 telemetry platform they all share.
 
 That's the platform I *wish* I'd had for my little app — and it's exactly what
-Cribl is building for IT and Security: the place to host experiences, the
-governance and access control baked in, and a robust engine with access to data
-both stored with Cribl and **federated** across the other tools and stores where
-it already lives. [TODO: agentic telemetry positioning — drop in the
-agent-access / "agents as first-class consumers of telemetry" framing here.]
+Cribl is building for IT and Security. Remember the hosting realization: the
+valuable thing isn't a place to run code, it's a place to run code that's
+*already wired into identity, access control, and your data.* That is the
+shape of what Cribl provides for telemetry experiences:
+
+- **A governed home for the experiences themselves** — not just "a server," but a
+  place to run apps and agents that's already connected to access control and the
+  data, so every new experience isn't a from-scratch security project.
+- **RBAC and governance baked in**, so the right people — and the right agents —
+  get the right access by default.
+- **A robust engine with access to the data wherever it lives** — both telemetry
+  stored with Cribl and **federated** across the other tools, stores, and
+  databases it already sits in.
+
+[TODO: agentic telemetry positioning — drop in the agent-access / "agents as
+first-class consumers of telemetry" framing here.]
 
 ---
 
