@@ -59,4 +59,7 @@ export interface ViewDef {
   // Optional link to child records (e.g. tickets opened by automations) that can
   // be expanded inline beneath each row.
   childLink?: { collection: CollectionId; parentField: string; childField: string };
+  // Hide this board's tab (kept in the app, just not shown — e.g. boards with no
+  // data for a given demo).
+  hidden?: boolean;
 }

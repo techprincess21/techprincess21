@@ -56,11 +56,27 @@ export default function Workspace({
       }
     }
     for (const v of byId.values()) out.push(v);
-    return out;
+    return out.filter((v) => !v.hidden);
   }, [views, config?.tabOrder]);
 
-  const [activeId, setActiveId] = useState(views[0]?.id);
+  const firstVisible = views.find((v) => !v.hidden)?.id ?? views[0]?.id;
+  const [activeId, setActiveId] = useState(firstVisible);
   const active = orderedViews.find((v) => v.id === activeId) ?? orderedViews[0];
+
+  // Restore the last-viewed board after a refresh (only if it's a visible tab).
+  useEffect(() => {
+    const saved = typeof window !== "undefined" ? localStorage.getItem("goatsana.activeTab") : null;
+    if (saved && views.some((v) => v.id === saved && !v.hidden)) setActiveId(saved);
+  }, [views]);
+
+  function selectTab(id: string) {
+    setActiveId(id);
+    try {
+      localStorage.setItem("goatsana.activeTab", id);
+    } catch {
+      /* ignore (e.g. storage disabled) */
+    }
+  }
 
   async function putConfig(body: object) {
     const res = await fetch("/api/config", {
@@ -219,7 +235,7 @@ export default function Workspace({
           <button
             key={v.id}
             className={`tab ${v.id === activeId ? "active" : ""} ${dragTab === v.id ? "dragging" : ""}`}
-            onClick={() => setActiveId(v.id)}
+            onClick={() => selectTab(v.id)}
             draggable={canCustomize}
             onDragStart={() => canCustomize && setDragTab(v.id)}
             onDragOver={(e) => dragTab && e.preventDefault()}

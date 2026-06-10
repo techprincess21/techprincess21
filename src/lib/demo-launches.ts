@@ -61,6 +61,16 @@ export const LAUNCH_DEMO_VIEWS: ViewDef[] = [
 type Row = { [key: string]: FieldValue };
 
 export const LAUNCH_DEMO_DATA: { [collection: string]: Row[] } = {
+  // Seeds the "Launch Plan" board (the automation showcase). Includes a Webinar
+  // deliverable so the ⚡ "Open tickets" cross-team workflow can be demoed live.
+  launch: [
+    { phase: "Phase 3 — GTM Launch Rollout", status: "Completed", deliverable: "Release Blog", moment: "GA", responsible: "Felicia Dorng", finalDate: "Wed, Mar. 11" },
+    { phase: "Phase 3 — GTM Launch Rollout", status: "Completed", deliverable: "PR Final + Go Live", moment: "GA", responsible: "Rachael King", finalDate: "Wed, Mar. 11" },
+    { phase: "Phase 3 — GTM Launch Rollout", status: "In Progress - On Track", deliverable: "Social Assets", moment: "GA", responsible: "Hannah Inman", finalDate: "Wed, Mar. 11" },
+    { phase: "Phase 4 — Post-Launch Optimization & Expansion", status: "Not Started", deliverable: "Customer Webinar — Q3 Search Deep Dive", workType: "Webinar", moment: "Post Launch", responsible: "Sabrina Schipper", dependency: "Set status to Scheduled to open the cross-team tickets", startDate: "Mon, Jul. 6", finalDate: "Wed, Jul. 22" },
+    { phase: "Phase 4 — Post-Launch Optimization & Expansion", status: "Not Started", deliverable: "BOFU Demo Video", moment: "Post Launch", responsible: "Felicia Dorng", finalDate: "Tue, Apr. 14" },
+  ],
+
   launchSearch: [
     { phase: "Phase 0 — GTM Planning & Alignment", status: "Completed", deliverable: "Pre-Planning", responsible: "Gabby Zurita", startDate: "Mon, Nov. 24", finalDate: "Fri, Dec. 19" },
     { phase: "Phase 0 — GTM Planning & Alignment", status: "Completed", deliverable: "GTM Motion Definition", responsible: "Chris Hayward", startDate: "Mon, Nov. 24", finalDate: "Fri, Dec. 19" },
