@@ -1,19 +1,24 @@
 import Workspace from "./Workspace";
+import SignIn from "./SignIn";
 import { VIEWS } from "@/lib/views";
-import { getCurrentUser, getPermissions, devLoginEnabled } from "@/lib/auth";
+import { getIdentity, devLoginEnabled } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export default async function Page() {
   const adapter = (process.env.DATA_ADAPTER ?? "mock").toLowerCase();
-  const user = await getCurrentUser();
-  const { role, perms } = await getPermissions(user.id);
+  const me = await getIdentity();
+
+  // Okta is on but nobody is signed in -> show the sign-in screen.
+  if (me.viaOkta && !me.signedIn) return <SignIn />;
+
   return (
     <Workspace
       views={VIEWS}
       adapter={adapter}
-      me={{ id: user.id, name: user.name, role, perms }}
-      devLogin={devLoginEnabled()}
+      me={{ id: me.id, name: me.name, role: me.role, perms: me.perms }}
+      devLogin={devLoginEnabled() && !me.viaOkta}
+      oktaAuth={me.viaOkta}
     />
   );
 }

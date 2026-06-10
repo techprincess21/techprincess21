@@ -22,11 +22,13 @@ export default function Workspace({
   adapter,
   me,
   devLogin = false,
+  oktaAuth = false,
 }: {
   views: ViewDef[];
   adapter: string;
   me: Me;
   devLogin?: boolean;
+  oktaAuth?: boolean;
 }) {
   const [config, setConfig] = useState<AppConfig | null>(null);
   const [dragTab, setDragTab] = useState<string | null>(null);
@@ -242,6 +244,11 @@ export default function Workspace({
             <span className="who-static">{me.name}</span>
           )}
           <span className="who-role">{me.role}</span>
+          {oktaAuth && (
+            <a className="btn btn-ghost who-manage" href="/api/auth/signout">
+              Sign out
+            </a>
+          )}
           {canManageRoles && (
             <>
               <button

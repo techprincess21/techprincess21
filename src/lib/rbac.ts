@@ -51,6 +51,19 @@ export const DEFAULT_ROLES: { [role: string]: string[] } = {
 
 export const ROLE_LIST = ["Viewer", "Contributor", "Editor", "Project Admin", "Org Admin"];
 
+// Map a user's Okta groups to a role. Matches group names loosely against role
+// names (e.g. "Goatsana-Org-Admins" -> "Org Admin"), picking the highest
+// privilege the user qualifies for; defaults to Viewer.
+export function groupsToRole(groups: string[]): string {
+  const norm = (s: string) => s.toLowerCase().replace(/[^a-z]/g, "");
+  const g = (groups ?? []).map(norm);
+  for (const role of [...ROLE_LIST].reverse()) {
+    const r = norm(role);
+    if (g.some((x) => x.includes(r))) return role;
+  }
+  return "Viewer";
+}
+
 export interface DemoUser {
   id: string;
   name: string;

@@ -1,48 +1,57 @@
 import { cookies } from "next/headers";
+import { getServerSession } from "next-auth";
 import { getConfig } from "@/lib/config-store";
-import { DEMO_USERS, DEFAULT_USER_ID, type DemoUser } from "@/lib/rbac";
+import { authOptions, oktaConfigured } from "@/lib/authOptions";
+import { DEMO_USERS, DEFAULT_USER_ID, groupsToRole } from "@/lib/rbac";
 
 // Server-side identity + permission resolution.
 //
-// Today identity comes from a `devUser` cookie set by the dev user switcher —
-// this is explicitly NOT secure and exists only so the access model can be
-// demoed. Once Okta SSO (OIDC) is wired up, getCurrentUser() reads the verified
-// session/token instead, and the rest of this file is unchanged.
+// Priority: a verified Okta session (when Okta is configured) → the dev
+// "Viewing as" cookie (when DEV_LOGIN is on) → a read-only guest. So a deploy
+// with Okta uses real SSO; without it, the demo switcher; with neither, guest.
 
-// Dev login (the "Viewing as" switcher) lets the client pick any identity — it
-// is NOT secure and must be explicitly enabled. Off by default, so a deploy
-// without Okta can't be impersonated: everyone is a read-only guest until real
-// SSO is wired up.
 export function devLoginEnabled(): boolean {
   const v = (process.env.DEV_LOGIN ?? "").toLowerCase();
   return v === "true" || v === "1";
 }
 
-// The current user's id (from the dev switcher cookie). When SSO is added this
-// becomes the verified subject from the OIDC session.
-export function currentUserId(): string {
-  if (!devLoginEnabled()) return "guest"; // no impersonation -> read-only guest
-  return cookies().get("devUser")?.value || DEFAULT_USER_ID;
+export interface Identity {
+  id: string;
+  name: string;
+  role: string;
+  perms: string[];
+  viaOkta: boolean;
+  signedIn: boolean;
 }
 
-// Resolve a display name for an id across built-in + admin-added users.
-export async function getCurrentUser(): Promise<DemoUser> {
-  const id = currentUserId();
-  const builtin = DEMO_USERS.find((u) => u.id === id);
-  if (builtin) return builtin;
+export async function getIdentity(): Promise<Identity> {
   const cfg = await getConfig();
-  const custom = cfg.users.find((u) => u.id === id);
-  return { id, name: custom?.name ?? (id === "guest" ? "Guest" : id) };
-}
+  const permsFor = (role: string) => cfg.roles[role] ?? [];
 
-export async function getPermissions(userId: string): Promise<{ role: string; perms: string[] }> {
-  const cfg = await getConfig();
-  const role = cfg.userRoles[userId] ?? "Viewer";
-  return { role, perms: cfg.roles[role] ?? [] };
+  if (oktaConfigured()) {
+    const session = await getServerSession(authOptions);
+    const email = session?.user?.email;
+    if (email) {
+      const groups = ((session as { groups?: string[] } | null)?.groups ?? []) as string[];
+      const role = groupsToRole(groups);
+      return { id: email, name: session?.user?.name ?? email, role, perms: permsFor(role), viaOkta: true, signedIn: true };
+    }
+    // Okta on, nobody signed in yet → read-only guest (page shows sign-in).
+    return { id: "guest", name: "Guest", role: "Viewer", perms: permsFor("Viewer"), viaOkta: true, signedIn: false };
+  }
+
+  // Dev switcher / guest fallback.
+  const id = devLoginEnabled() ? cookies().get("devUser")?.value || DEFAULT_USER_ID : "guest";
+  const role = cfg.userRoles[id] ?? "Viewer";
+  const name =
+    DEMO_USERS.find((u) => u.id === id)?.name ??
+    cfg.users.find((u) => u.id === id)?.name ??
+    (id === "guest" ? "Guest" : id);
+  return { id, name, role, perms: permsFor(role), viaOkta: false, signedIn: devLoginEnabled() };
 }
 
 // Convenience: does the current user hold a permission?
 export async function can(perm: string): Promise<boolean> {
-  const { perms } = await getPermissions(currentUserId());
-  return perms.includes(perm);
+  const me = await getIdentity();
+  return me.perms.includes(perm);
 }

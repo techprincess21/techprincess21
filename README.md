@@ -68,10 +68,27 @@ JIRA_PROJECT_KEY=WEB
 ```
 
 **Auth note:** the app uses app-enforced RBAC (Model A) over a single Jira
-service account. Human login is currently a dev "Viewing as" switcher
-(`src/lib/auth.ts`, cookie-based) — intentionally insecure, for demos only. It
-will be replaced by **Okta SSO (OIDC)**, with Okta groups mapped to the roles in
-`src/lib/rbac.ts`. See **[docs/SECURITY.md](docs/SECURITY.md)**.
+service account. Identity resolves in this order (`src/lib/auth.ts` →
+`getIdentity()`): a verified **Okta SSO** session → the dev "Viewing as"
+switcher → a read-only guest. See **[docs/SECURITY.md](docs/SECURITY.md)**.
+
+**Okta SSO (OIDC), via NextAuth** — staged and gated. It activates only when
+these env vars are set; until then the app uses the dev switcher unchanged:
+
+```bash
+OKTA_ISSUER=https://<org>.okta.com/oauth2/default
+OKTA_CLIENT_ID=...
+OKTA_CLIENT_SECRET=...
+NEXTAUTH_URL=https://<your-vercel-domain>
+NEXTAUTH_SECRET=...        # openssl rand -base64 32
+```
+
+Okta app spec: OIDC **Web** app (Authorization Code); sign-in redirect
+`https://<domain>/api/auth/callback/okta`; scopes `openid profile email groups`
+(include the **groups** claim). Okta groups map to roles via
+`groupsToRole()` in `src/lib/rbac.ts` (e.g. a group containing "Org Admin" →
+Org Admin); default is Viewer. When Okta is on and nobody's signed in, the app
+shows a sign-in screen and blocks mutations.
 
 The dev switcher is gated behind an env var and is **off by default**:
 

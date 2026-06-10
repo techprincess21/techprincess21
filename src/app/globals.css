@@ -1309,6 +1309,48 @@ td.cell-select {
   margin-top: 4px;
 }
 
+/* Sign-in screen (Okta SSO) */
+.signin-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--app-bg);
+}
+
+.signin-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 40px;
+  text-align: center;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.08);
+  max-width: 360px;
+}
+
+.signin-card .brand-mark {
+  width: 56px;
+  height: 56px;
+  font-size: 32px;
+  border-radius: 16px;
+  margin: 0 auto 12px;
+}
+
+.signin-card h1 {
+  margin: 0 0 6px;
+  font-size: 24px;
+}
+
+.signin-card p {
+  color: var(--muted);
+  margin: 0 0 20px;
+}
+
+.signin-btn {
+  display: inline-block;
+  text-decoration: none;
+}
+
 /* CMO summary widgets */
 .summary-bar {
   display: grid;
