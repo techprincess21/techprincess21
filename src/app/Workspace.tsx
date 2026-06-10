@@ -7,6 +7,7 @@ import { DEMO_USERS } from "@/lib/rbac";
 import { LAUNCH_DEMO_COLLECTIONS } from "@/lib/demo-launches";
 import EditableGrid from "./EditableGrid";
 import AccessModal from "./AccessModal";
+import AutomationsBuilder from "./AutomationsBuilder";
 
 interface Me {
   id: string;
@@ -118,6 +119,20 @@ export default function Workspace({
     setAccessDirty(true);
     setConfig((p) => (p ? { ...p, userRoles: { ...p.userRoles, [userId]: role } } : p));
     putConfig({ action: "userRole", userId, role });
+  }
+  function savePlaybook(workType: string, team: string, patch: { project?: string; assignees?: string }) {
+    setConfig((p) =>
+      p
+        ? {
+            ...p,
+            playbooks: {
+              ...p.playbooks,
+              [workType]: { ...(p.playbooks?.[workType] ?? {}), [team]: { ...(p.playbooks?.[workType]?.[team] ?? {}), ...patch } },
+            },
+          }
+        : p
+    );
+    putConfig({ action: "playbook", workType, team, ...patch });
   }
 
   function dropTab(targetId: string) {
@@ -247,7 +262,14 @@ export default function Workspace({
         ))}
       </div>
 
-      {active && (
+      {active && active.builder ? (
+        <AutomationsBuilder
+          description={active.description}
+          overrides={config?.playbooks ?? {}}
+          canEdit={canManageRoles}
+          onSave={savePlaybook}
+        />
+      ) : active ? (
         <EditableGrid
           key={active.id}
           view={active}
@@ -261,7 +283,7 @@ export default function Workspace({
           onSaveColor={(columnKey, value, hex) => saveColor(active.id, columnKey, value, hex)}
           onSavePeople={savePeople}
         />
-      )}
+      ) : null}
 
       {accessOpen && config && (
         <AccessModal

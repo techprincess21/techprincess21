@@ -42,24 +42,10 @@ export const PLAYBOOKS: { [workType: string]: Playbook } = {
         triggerStatus: "Scheduled",
         tickets: [
           {
-            team: "Demand Gen",
-            project: "WEBINAR",
-            summary: "Webinar setup & event ops — {deliverable}",
-            assignees: "Demand Gen",
-            dueHint: "Abstract due 3.5 weeks before live; Wed 10 AM PT slot",
-            checklist: [
-              "Finalize date/time & confirm speaker + abstract",
-              "Create Zoom (FY24 template, auto-approve registration)",
-              "Set reminders 1 day + 1 hour before; add panelists day prior",
-              "Schedule dry run; collect 1–5 seed poll questions",
-              "Write live intro/outro script; add SFDC campaign description",
-            ],
-          },
-          {
             team: "Design",
             project: "DESIGN",
             summary: "Creative assets package — {deliverable}",
-            assignees: "Kaycee Carmichael Chiu Hannah Inman Mickey Hsieh",
+            assignees: "Kaycee Carmichael Chiu Hannah Inman",
             dueHint: "Open ASAP after abstract; ~1 week creative turnaround",
             checklist: [
               "Marketo eblast header (580x250)",
@@ -68,14 +54,13 @@ export const PLAYBOOKS: { [workType: string]: Playbook } = {
               "Organic social assets (1200x1200)",
               "Website banner (355x185)",
               "BrightTalk tile (640x360) + PathFactory tile (500x374)",
-              "Partner portal image (800x500)",
             ],
           },
           {
             team: "Marketing Ops",
-            project: "MOPS",
+            project: "MOPSTICKET",
             summary: "Demand Gen {deliverable} — Marketo Program Build",
-            assignees: "Marketing Ops",
+            assignees: "Kylie Higgins",
             dueHint: "Promo emails 2 weeks / 1 week / 1 day prior",
             checklist: [
               "Build Marketo campaign + landing page from abstract",
@@ -87,35 +72,14 @@ export const PLAYBOOKS: { [workType: string]: Playbook } = {
           },
           {
             team: "Content / Social",
-            project: "SOCIAL",
+            project: "SM",
             summary: "Promote {deliverable} — organic + field",
-            assignees: "Hannah Inman Marie Hill",
+            assignees: "Hannah Inman",
             dueHint: "As soon as the registration page is live",
             checklist: [
-              "Organic social once banners are ready (Hannah)",
-              "Send details + UTMs to Field Channel Marketing (Marie Hill's team)",
+              "Organic social once banners are ready",
+              "Send details + UTMs to Field Channel Marketing",
               "Add to Marketing Events + Webinar calendars",
-              "Federal webinars: vet with Karen Borosky before scheduling",
-            ],
-          },
-        ],
-      },
-      {
-        triggerStatus: "Completed",
-        tickets: [
-          {
-            team: "Demand Gen",
-            project: "WEBINAR",
-            summary: "Post-event wrap-up — {deliverable}",
-            assignees: "Demand Gen Mickey Hsieh",
-            dueHint: "Report within 1–2 hours of the event",
-            checklist: [
-              "Send recording to Prime Image (Rachel/Ben) to edit",
-              "CC Bradley → Vimeo embed → add to follow-up email ticket",
-              "Mickey posts recording on-demand to website",
-              "Post-event report to sales/SE/BDR/marketing DLs",
-              "Run SFDC attended report; flag demo requests",
-              "Post on-demand to BrightTalk; add to Sales Newsletter",
             ],
           },
         ],
@@ -123,6 +87,27 @@ export const PLAYBOOKS: { [workType: string]: Playbook } = {
     ],
   },
 };
+
+// Apply per-board automation overrides (target project + assignees per team)
+// from the Automations builder, on top of the code-defined playbook.
+export type PlaybookOverrides = {
+  [workType: string]: { [team: string]: { project?: string; assignees?: string } };
+};
+
+export function applyOverrides(pb: Playbook, overrides?: PlaybookOverrides): Playbook {
+  const o = overrides?.[pb.workType];
+  if (!o) return pb;
+  return {
+    ...pb,
+    stages: pb.stages.map((s) => ({
+      ...s,
+      tickets: s.tickets.map((t) => {
+        const ov = o[t.team];
+        return ov ? { ...t, project: ov.project || t.project, assignees: ov.assignees ?? t.assignees } : t;
+      }),
+    })),
+  };
+}
 
 const splitStages = (v: unknown) =>
   String(v ?? "")
@@ -161,13 +146,15 @@ const splitCsv = (v: unknown) =>
 export async function runPlaybooks(
   adapter: DataAdapter,
   collection: CollectionId,
-  record: Record
+  record: Record,
+  overrides?: PlaybookOverrides
 ): Promise<{ record: Record; created: { key: string; team: string }[]; stage: string | null }> {
   const noop = { record, created: [] as { key: string; team: string }[], stage: null };
   if (collection !== "launch") return noop;
 
-  const pb = PLAYBOOKS[String(record.fields.workType ?? "")];
-  if (!pb) return noop;
+  const base = PLAYBOOKS[String(record.fields.workType ?? "")];
+  if (!base) return noop;
+  const pb = applyOverrides(base, overrides);
 
   const status = String(record.fields.status ?? "");
   const stage = pb.stages.find((s) => s.triggerStatus === status);
@@ -180,9 +167,9 @@ export async function runPlaybooks(
   const created: { key: string; team: string }[] = [];
 
   for (const def of stage.tickets) {
-    const key = ticketKey(def.project);
-    await adapter.create("tickets", {
-      key,
+    // Create the cross-team ticket in its target project; the adapter returns
+    // the real issue key (or a generated one in mock mode).
+    const rec = await adapter.create("tickets", {
       summary: def.summary.replace("{deliverable}", deliverable),
       team: def.team,
       project: def.project,
@@ -192,6 +179,7 @@ export async function runPlaybooks(
       details: (def.checklist ?? []).join(" • "),
       sourceDeliverable: deliverable,
     });
+    const key = rec.jiraKey || ticketKey(def.project);
     created.push({ key, team: def.team });
   }
 

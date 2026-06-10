@@ -63,10 +63,11 @@ owner.
 > editorial calendar — all of them can become boards like this.
 
 ### ⚡ Automations
-Tickets that the app **opens automatically** across teams (Design, Marketing
-Ops, Content/Social, Demand Gen) when a workflow fires — see "Automate the
-busywork" below. Grouped by team, each ticket comes pre-filled with the right
-people and a checklist.
+Where you **define** the workflows: "for a work type, when it reaches a status,
+open these tickets in these teams' Jira projects." The Webinar automation, for
+example, opens tickets in **DESIGN**, **MOPSTICKET**, and **SM**. The tickets it
+opens show up **under their deliverable** on the board (expand the row), not
+here — this tab is the rule-builder.
 
 ### Demo launches — Cribl Search, Fall '25 / CriblCon, FedRAMP
 Three real recent launches, each as its own board (deliverables grouped by

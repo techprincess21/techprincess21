@@ -154,8 +154,11 @@ already opened).
 Once a line has opened tickets, it becomes **expandable**: click the toggle to
 reveal the sub-tickets beneath it, each with its own status chip you can advance
 inline — so you can see the whole sub-workflow at a glance without leaving the
-board. (Opened tickets also appear on the **⚡ Automations** tab, grouped by
-team.)
+board. The **⚡ Automations** tab is where these rules are *defined* (work type →
+status → which Jira projects to open tickets in, with assignees and checklists);
+the tickets it opens are routed to each team's real project (Design → DESIGN,
+Marketing Ops → MOPSTICKET, Content/Social → SM), with a safe fallback to the
+main project.
 
 **Today vs. live:**
 - *Today:* the tickets are mock records, so you can demo the fan-out safely.

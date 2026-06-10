@@ -21,6 +21,9 @@ export interface AppConfig {
   people: string[];
   roles: { [role: string]: string[] };
   userRoles: { [userId: string]: string };
+  // Automation builder overrides: per work type, per team -> target project /
+  // assignees. Empty = use the code-defined playbook defaults.
+  playbooks: { [workType: string]: { [team: string]: { project?: string; assignees?: string } } };
 }
 
 const DATA_DIR = process.env.DATA_DIR || path.join(process.cwd(), ".data");
@@ -52,6 +55,7 @@ function defaultConfig(): AppConfig {
     people: [...DEFAULT_PEOPLE],
     roles: structuredClone(DEFAULT_ROLES),
     userRoles: { ...DEFAULT_USER_ROLES },
+    playbooks: {},
   };
 }
 
@@ -71,6 +75,7 @@ export async function getConfig(): Promise<AppConfig> {
       people: saved.people?.length ? saved.people : base.people,
       roles: { ...base.roles, ...(saved.roles ?? {}) },
       userRoles: { ...base.userRoles, ...(saved.userRoles ?? {}) },
+      playbooks: saved.playbooks ?? {},
     };
   } catch {
     cache = base;
@@ -138,6 +143,19 @@ export async function setRole(role: string, permissions: string[]) {
 export async function setUserRole(userId: string, role: string) {
   const cfg = await getConfig();
   cfg.userRoles[userId] = role;
+  await persist();
+  return cfg;
+}
+
+export async function setPlaybookOverride(
+  workType: string,
+  team: string,
+  override: { project?: string; assignees?: string }
+) {
+  const cfg = await getConfig();
+  const wt = cfg.playbooks[workType] ?? {};
+  wt[team] = { ...(wt[team] ?? {}), ...override };
+  cfg.playbooks[workType] = wt;
   await persist();
   return cfg;
 }

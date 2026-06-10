@@ -5,6 +5,7 @@ import {
   setColumnOrder,
   setColor,
   setPeople,
+  setPlaybookOverride,
   setRole,
   setTabOrder,
   setUserRole,
@@ -23,7 +24,7 @@ const strList = (arr: unknown[]) => [...new Set(arr.map((o) => String(o)).filter
 const forbidden = () => NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
 const CUSTOMIZE = new Set(["options", "columns", "tabs", "color", "people"]);
-const ACCESS = new Set(["role", "userRole"]);
+const ACCESS = new Set(["role", "userRole", "playbook"]);
 
 export async function PUT(req: Request) {
   const body = await req.json().catch(() => ({}));
@@ -53,6 +54,13 @@ export async function PUT(req: Request) {
   }
   if (body?.action === "userRole" && typeof body.userId === "string" && typeof body.role === "string") {
     return NextResponse.json({ config: await setUserRole(body.userId, body.role) });
+  }
+  if (body?.action === "playbook" && typeof body.workType === "string" && typeof body.team === "string") {
+    const override = {
+      project: typeof body.project === "string" ? body.project : undefined,
+      assignees: typeof body.assignees === "string" ? body.assignees : undefined,
+    };
+    return NextResponse.json({ config: await setPlaybookOverride(body.workType, body.team, override) });
   }
   return NextResponse.json({ error: "Invalid config update" }, { status: 400 });
 }

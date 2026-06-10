@@ -1260,6 +1260,136 @@ td.cell-select {
   margin-top: 4px;
 }
 
+/* Automations builder */
+.ab {
+  max-width: 920px;
+}
+
+.ab-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 18px;
+  margin-bottom: 16px;
+}
+
+.ab-rule {
+  font-size: 15px;
+  line-height: 1.9;
+  margin-bottom: 12px;
+}
+
+.ab-when {
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ab-pill {
+  display: inline-block;
+  color: #fff;
+  font-weight: 700;
+  font-size: 12px;
+  padding: 2px 10px;
+  border-radius: 999px;
+}
+
+.ab-tickets {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.ab-ticket {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  background: var(--app-bg);
+}
+
+.ab-ticket-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.ab-arrow {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.ab-input {
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  padding: 5px 8px;
+  font: inherit;
+}
+
+.ab-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.ab-input:disabled {
+  background: #eceef3;
+  color: var(--muted);
+}
+
+.ab-project {
+  width: 130px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.ab-ticket-summary {
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.ab-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.ab-field .ab-input {
+  width: 100%;
+  text-transform: none;
+  font-weight: 400;
+  color: var(--text);
+}
+
+.ab-checklist {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.ab-checklist summary {
+  cursor: pointer;
+}
+
+.ab-checklist ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+
+.ab-add {
+  margin-top: 4px;
+}
+
+.ab-note {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 10px;
+}
+
 /* Automation toast */
 .toast {
   position: fixed;

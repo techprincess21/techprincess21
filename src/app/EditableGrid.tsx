@@ -714,7 +714,7 @@ function SubItem({
   onStatus: (value: string) => void;
 }) {
   const f = child.fields;
-  const key = String(f.key ?? "");
+  const key = String(child.jiraKey ?? f.key ?? "");
   const team = String(f.team ?? "");
   const status = String(f.status ?? "");
   const people = splitPeople(String(f.assignee ?? ""));

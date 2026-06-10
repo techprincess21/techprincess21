@@ -87,23 +87,13 @@ export const VIEWS: ViewDef[] = [
     ],
   },
   {
-    id: "tickets",
+    id: "automations",
     label: "⚡ Automations",
     collection: "tickets",
     description:
-      "Tickets opened automatically by workflow playbooks, grouped by team. Flag a deliverable on the Launch Plan as 'Webinar' and set it to 'Scheduled' — the Webinar playbook opens the Design, MOPS, and Content/Social tickets here. (Mock today; becomes real Jira issues in each team's project once connected.)",
-    groupBy: "team",
-    defaults: { status: "To Do" },
-    columns: [
-      { key: "key", label: "Jira", type: "jira", width: 120, readOnly: true },
-      { key: "summary", label: "Summary", type: "longtext", width: 320 },
-      { key: "status", label: "Status", type: "select", options: ["To Do", "In Progress", "Done"], width: 140 },
-      { key: "team", label: "Team", type: "select", options: ["Demand Gen", "Design", "Marketing Ops", "Content / Social"], width: 160 },
-      { key: "assignee", label: "Assignee", type: "person", width: 200 },
-      { key: "due", label: "Timing", type: "text", width: 240, readOnly: true },
-      { key: "details", label: "Checklist", type: "text", width: 420, readOnly: true },
-      { key: "sourceDeliverable", label: "From Deliverable", type: "text", width: 240, readOnly: true },
-    ],
+      "Define what happens automatically. Each automation says: for a work type, when it reaches a status, open these tickets in these teams' Jira projects. The tickets themselves appear under their deliverable on the board.",
+    builder: true,
+    columns: [],
   },
   {
     id: "okr",

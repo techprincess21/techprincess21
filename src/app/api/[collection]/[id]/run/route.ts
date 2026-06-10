@@ -2,10 +2,12 @@ import { NextResponse } from "next/server";
 import { getAdapter } from "@/lib/adapters";
 import { runPlaybooks } from "@/lib/playbooks";
 import { can } from "@/lib/auth";
+import { getConfig } from "@/lib/config-store";
 import type { CollectionId } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 const COLLECTIONS: CollectionId[] = ["content", "launch", "tickets", "launchSearch", "launchFall", "launchFedramp", "okr", "quarterPlan", "topicOwners"];
 const isCollection = (v: string): v is CollectionId => (COLLECTIONS as string[]).includes(v);
@@ -25,7 +27,8 @@ export async function POST(_req: Request, { params }: { params: { collection: st
   const rec = list.find((r) => r.id === params.id);
   if (!rec) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const { record, created, stage } = await runPlaybooks(adapter, params.collection, rec);
+  const cfg = await getConfig();
+  const { record, created, stage } = await runPlaybooks(adapter, params.collection, rec, cfg.playbooks);
   if (created.length === 0) {
     return NextResponse.json({ error: "Nothing to run at this status" }, { status: 409 });
   }

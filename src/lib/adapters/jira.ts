@@ -152,7 +152,7 @@ function fieldsFromIssue(issue: any): { [key: string]: FieldValue } {
 }
 
 export class JiraAdapter implements DataAdapter {
-  private issueTypeId: string | null = null;
+  private issueTypeIds = new Map<string, string>();
 
   private async api(path: string, init?: RequestInit): Promise<any> {
     const { baseUrl, email, token } = readConfig();
@@ -174,9 +174,9 @@ export class JiraAdapter implements DataAdapter {
     return text ? JSON.parse(text) : {};
   }
 
-  private async getIssueTypeId(): Promise<string> {
-    if (this.issueTypeId) return this.issueTypeId;
-    const { projectKey } = readConfig();
+  private async getIssueTypeId(projectKey: string): Promise<string> {
+    const cached = this.issueTypeIds.get(projectKey);
+    if (cached) return cached;
     const project = await this.api(`/rest/api/3/project/${encodeURIComponent(projectKey)}`);
     const types: any[] = project.issueTypes ?? [];
     const usable =
@@ -184,7 +184,7 @@ export class JiraAdapter implements DataAdapter {
       types.find((t) => !t.subtask) ??
       types[0];
     if (!usable) throw new Error(`No issue types available in project ${projectKey}.`);
-    this.issueTypeId = usable.id;
+    this.issueTypeIds.set(projectKey, usable.id);
     return usable.id;
   }
 
@@ -207,19 +207,27 @@ export class JiraAdapter implements DataAdapter {
 
   async list(collection: CollectionId): Promise<Record[]> {
     const { projectKey } = readConfig();
-    const jql = `project = "${projectKey}" AND labels = "${LABEL(collection)}" ORDER BY created ASC`;
+    // Automation tickets may live in other teams' projects, so search by label
+    // across all accessible projects. Everything else is scoped to MW.
+    const jql =
+      collection === "tickets"
+        ? `labels = "${LABEL(collection)}" ORDER BY created ASC`
+        : `project = "${projectKey}" AND labels = "${LABEL(collection)}" ORDER BY created ASC`;
     const issues = await this.search(jql);
     return issues.map((issue) => ({ id: issue.key, jiraKey: issue.key, fields: fieldsFromIssue(issue) }));
   }
 
-  async create(collection: CollectionId, fields: { [key: string]: FieldValue }): Promise<Record> {
-    const { projectKey } = readConfig();
-    const issuetypeId = await this.getIssueTypeId();
+  private async createIn(
+    targetProject: string,
+    collection: CollectionId,
+    fields: { [key: string]: FieldValue }
+  ): Promise<Record> {
+    const issuetypeId = await this.getIssueTypeId(targetProject);
     const created = await this.api(`/rest/api/3/issue`, {
       method: "POST",
       body: JSON.stringify({
         fields: {
-          project: { key: projectKey },
+          project: { key: targetProject },
           issuetype: { id: issuetypeId },
           summary: this.title(collection, fields),
           description: buildDescription(collection, fields, JSON.stringify(fields)),
@@ -228,6 +236,23 @@ export class JiraAdapter implements DataAdapter {
       }),
     });
     return { id: created.key, jiraKey: created.key, fields };
+  }
+
+  async create(collection: CollectionId, fields: { [key: string]: FieldValue }): Promise<Record> {
+    const { projectKey } = readConfig();
+    // Automation tickets target a team's project (fields.project). Everything
+    // else goes to MW. If a target project fails (permissions, issue types),
+    // fall back to MW so nothing hard-fails.
+    const target =
+      collection === "tickets" && typeof fields.project === "string" && fields.project
+        ? String(fields.project)
+        : projectKey;
+    try {
+      return await this.createIn(target, collection, fields);
+    } catch (err) {
+      if (target !== projectKey) return await this.createIn(projectKey, collection, fields);
+      throw err;
+    }
   }
 
   async update(

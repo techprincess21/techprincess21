@@ -62,4 +62,6 @@ export interface ViewDef {
   // Hide this board's tab (kept in the app, just not shown — e.g. boards with no
   // data for a given demo).
   hidden?: boolean;
+  // Render the automations builder instead of a data grid for this tab.
+  builder?: boolean;
 }
