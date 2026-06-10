@@ -149,6 +149,17 @@ export default function Workspace({
     setConfig((p) => (p ? { ...p, automations: p.automations.filter((a) => a.id !== id) } : p));
     putConfig({ action: "automationDelete", id });
   }
+  function addUser(name: string) {
+    setAccessDirty(true);
+    putConfig({ action: "userAdd", name });
+  }
+  function removeUser(id: string) {
+    setAccessDirty(true);
+    setConfig((p) =>
+      p ? { ...p, users: p.users.filter((u) => u.id !== id) } : p
+    );
+    putConfig({ action: "userRemove", id });
+  }
 
   function dropTab(targetId: string) {
     if (!canCustomize || !dragTab || dragTab === targetId) return setDragTab(null);
@@ -221,7 +232,7 @@ export default function Workspace({
           <span className="who-label">{devLogin ? "Viewing as" : "Signed in as"}</span>
           {devLogin ? (
             <select className="who-select" value={me.id} onChange={(e) => switchUser(e.target.value)}>
-              {DEMO_USERS.map((u) => (
+              {[...DEMO_USERS, ...(config?.users ?? [])].map((u) => (
                 <option key={u.id} value={u.id}>
                   {u.name}
                 </option>
@@ -308,8 +319,11 @@ export default function Workspace({
         <AccessModal
           roles={config.roles}
           userRoles={config.userRoles}
+          users={config.users}
           onSaveRole={saveRole}
           onSaveUserRole={saveUserRole}
+          onAddUser={addUser}
+          onRemoveUser={removeUser}
           onClose={closeAccess}
         />
       )}

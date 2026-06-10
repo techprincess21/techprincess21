@@ -3,28 +3,45 @@
 import { useState } from "react";
 import { DEMO_USERS, PERMISSION_CATALOG, ROLE_LIST } from "@/lib/rbac";
 
-// Org Admin surface to (a) edit which permissions each role has and (b) assign
-// roles to people. Persists immediately via the parent's save callbacks.
+// Org Admin surface to (a) edit which permissions each role has and (b) add
+// people and assign them roles. Persists immediately via the parent's callbacks.
 export default function AccessModal({
   roles,
   userRoles,
+  users,
   onSaveRole,
   onSaveUserRole,
+  onAddUser,
+  onRemoveUser,
   onClose,
 }: {
   roles: { [role: string]: string[] };
   userRoles: { [userId: string]: string };
+  users: { id: string; name: string }[];
   onSaveRole: (role: string, permissions: string[]) => void;
   onSaveUserRole: (userId: string, role: string) => void;
+  onAddUser: (name: string) => void;
+  onRemoveUser: (id: string) => void;
   onClose: () => void;
 }) {
   const [tab, setTab] = useState<"roles" | "people">("roles");
+  const [newName, setNewName] = useState("");
 
   function togglePerm(role: string, key: string) {
     const current = roles[role] ?? [];
     const next = current.includes(key) ? current.filter((p) => p !== key) : [...current, key];
     onSaveRole(role, next);
   }
+
+  function addPerson() {
+    const n = newName.trim();
+    if (!n) return;
+    onAddUser(n);
+    setNewName("");
+  }
+
+  const builtinIds = new Set(DEMO_USERS.map((u) => u.id));
+  const allPeople = [...DEMO_USERS, ...users];
 
   // group the catalog for display
   const groups = [...new Set(PERMISSION_CATALOG.map((p) => p.group))];
@@ -78,21 +95,46 @@ export default function AccessModal({
             </div>
           ) : (
             <div className="people-roles">
-              {DEMO_USERS.map((u) => (
+              {allPeople.map((u) => (
                 <div className="pr-row" key={u.id}>
                   <span className="pr-name">{u.name}</span>
-                  <select
-                    value={userRoles[u.id] ?? "Viewer"}
-                    onChange={(e) => onSaveUserRole(u.id, e.target.value)}
-                  >
-                    {ROLE_LIST.map((r) => (
-                      <option key={r} value={r}>
-                        {r}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="pr-controls">
+                    <select
+                      value={userRoles[u.id] ?? "Viewer"}
+                      onChange={(e) => onSaveUserRole(u.id, e.target.value)}
+                    >
+                      {ROLE_LIST.map((r) => (
+                        <option key={r} value={r}>
+                          {r}
+                        </option>
+                      ))}
+                    </select>
+                    {builtinIds.has(u.id) ? (
+                      <span className="pr-tag">demo</span>
+                    ) : (
+                      <button className="pr-remove" title="Remove person" onClick={() => onRemoveUser(u.id)}>
+                        ×
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
+
+              <div className="pr-add">
+                <input
+                  value={newName}
+                  placeholder="Add a person by name…"
+                  onChange={(e) => setNewName(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && addPerson()}
+                />
+                <button className="btn btn-primary" onClick={addPerson}>
+                  Add person
+                </button>
+              </div>
+              <p className="cz-note">
+                New people start as Viewer — set their role above. (Until Okta SSO, this list is how
+                you grant access; with SSO, Okta groups will map to these roles.)
+              </p>
             </div>
           )}
         </div>

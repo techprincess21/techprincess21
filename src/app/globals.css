@@ -242,6 +242,55 @@ body {
   cursor: pointer;
 }
 
+.pr-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pr-tag {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: #eceef3;
+  padding: 2px 7px;
+  border-radius: 999px;
+}
+
+.pr-remove {
+  border: none;
+  background: none;
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+.pr-remove:hover {
+  color: #e2445c;
+}
+
+.pr-add {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.pr-add input {
+  flex: 1;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font: inherit;
+}
+
+.pr-add input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
 .modal-foot-note {
   margin-right: auto;
   color: var(--muted);

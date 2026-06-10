@@ -18,13 +18,21 @@ export function devLoginEnabled(): boolean {
   return v === "true" || v === "1";
 }
 
-const GUEST: DemoUser = { id: "guest", name: "Guest" };
+// The current user's id (from the dev switcher cookie). When SSO is added this
+// becomes the verified subject from the OIDC session.
+export function currentUserId(): string {
+  if (!devLoginEnabled()) return "guest"; // no impersonation -> read-only guest
+  return cookies().get("devUser")?.value || DEFAULT_USER_ID;
+}
 
-export function getCurrentUser(): DemoUser {
-  // When real SSO (Okta OIDC) is added, this reads the verified session instead.
-  if (!devLoginEnabled()) return GUEST; // resolves to the Viewer role
-  const id = cookies().get("devUser")?.value || DEFAULT_USER_ID;
-  return DEMO_USERS.find((u) => u.id === id) ?? DEMO_USERS.find((u) => u.id === DEFAULT_USER_ID)!;
+// Resolve a display name for an id across built-in + admin-added users.
+export async function getCurrentUser(): Promise<DemoUser> {
+  const id = currentUserId();
+  const builtin = DEMO_USERS.find((u) => u.id === id);
+  if (builtin) return builtin;
+  const cfg = await getConfig();
+  const custom = cfg.users.find((u) => u.id === id);
+  return { id, name: custom?.name ?? (id === "guest" ? "Guest" : id) };
 }
 
 export async function getPermissions(userId: string): Promise<{ role: string; perms: string[] }> {
@@ -35,7 +43,6 @@ export async function getPermissions(userId: string): Promise<{ role: string; pe
 
 // Convenience: does the current user hold a permission?
 export async function can(perm: string): Promise<boolean> {
-  const user = getCurrentUser();
-  const { perms } = await getPermissions(user.id);
+  const { perms } = await getPermissions(currentUserId());
   return perms.includes(perm);
 }

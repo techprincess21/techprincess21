@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import {
   addAutomation,
+  addUser,
   deleteAutomation,
   getConfig,
+  removeUser,
   setColumnOptions,
   setColumnOrder,
   setColor,
@@ -26,7 +28,15 @@ const strList = (arr: unknown[]) => [...new Set(arr.map((o) => String(o)).filter
 const forbidden = () => NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
 const CUSTOMIZE = new Set(["options", "columns", "tabs", "color", "people"]);
-const ACCESS = new Set(["role", "userRole", "playbook", "automationAdd", "automationDelete"]);
+const ACCESS = new Set([
+  "role",
+  "userRole",
+  "userAdd",
+  "userRemove",
+  "playbook",
+  "automationAdd",
+  "automationDelete",
+]);
 
 export async function PUT(req: Request) {
   const body = await req.json().catch(() => ({}));
@@ -56,6 +66,13 @@ export async function PUT(req: Request) {
   }
   if (body?.action === "userRole" && typeof body.userId === "string" && typeof body.role === "string") {
     return NextResponse.json({ config: await setUserRole(body.userId, body.role) });
+  }
+  if (body?.action === "userAdd" && typeof body.name === "string" && body.name.trim()) {
+    const role = typeof body.role === "string" ? body.role : "Viewer";
+    return NextResponse.json({ config: await addUser(body.name.trim(), role) });
+  }
+  if (body?.action === "userRemove" && typeof body.id === "string") {
+    return NextResponse.json({ config: await removeUser(body.id) });
   }
   if (body?.action === "playbook" && typeof body.workType === "string" && typeof body.team === "string") {
     const override = {

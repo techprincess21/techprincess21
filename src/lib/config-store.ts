@@ -22,6 +22,8 @@ export interface AppConfig {
   people: string[];
   roles: { [role: string]: string[] };
   userRoles: { [userId: string]: string };
+  // Admin-added users (beyond the built-in demo identities), assignable to roles.
+  users: { id: string; name: string }[];
   // Automation builder overrides: per work type, per team -> target project /
   // assignees. Empty = use the code-defined playbook defaults.
   playbooks: { [workType: string]: { [team: string]: { project?: string; assignees?: string } } };
@@ -58,6 +60,7 @@ function defaultConfig(): AppConfig {
     people: [...DEFAULT_PEOPLE],
     roles: structuredClone(DEFAULT_ROLES),
     userRoles: { ...DEFAULT_USER_ROLES },
+    users: [],
     playbooks: {},
     automations: [],
   };
@@ -79,6 +82,7 @@ export async function getConfig(): Promise<AppConfig> {
       people: saved.people?.length ? saved.people : base.people,
       roles: { ...base.roles, ...(saved.roles ?? {}) },
       userRoles: { ...base.userRoles, ...(saved.userRoles ?? {}) },
+      users: saved.users ?? [],
       playbooks: saved.playbooks ?? {},
       automations: saved.automations ?? [],
     };
@@ -148,6 +152,23 @@ export async function setRole(role: string, permissions: string[]) {
 export async function setUserRole(userId: string, role: string) {
   const cfg = await getConfig();
   cfg.userRoles[userId] = role;
+  await persist();
+  return cfg;
+}
+
+export async function addUser(name: string, role = "Viewer") {
+  const cfg = await getConfig();
+  const id = `u_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+  cfg.users = [...cfg.users, { id, name }];
+  cfg.userRoles[id] = role;
+  await persist();
+  return cfg;
+}
+
+export async function removeUser(id: string) {
+  const cfg = await getConfig();
+  cfg.users = cfg.users.filter((u) => u.id !== id);
+  delete cfg.userRoles[id];
   await persist();
   return cfg;
 }

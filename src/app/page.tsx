@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 export default async function Page() {
   const adapter = (process.env.DATA_ADAPTER ?? "mock").toLowerCase();
-  const user = getCurrentUser();
+  const user = await getCurrentUser();
   const { role, perms } = await getPermissions(user.id);
   return (
     <Workspace
