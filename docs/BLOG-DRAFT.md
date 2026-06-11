@@ -107,97 +107,108 @@ Swap "my marketing data in Jira" for "an organization's IT and Security
 telemetry," and my weekend project becomes the defining infrastructure problem of
 the next decade.
 
-For twenty years, every major IT and Security category was built around an
-*application* — observability, SIEM, APM — and each one built its own telemetry
-pipeline, its own data store, its own schema and access model. Duplicated data,
-duplicated infrastructure, duplicated cost.
+Here's the part that stopped me cold once I'd lived it: I rebuilt hosting,
+identity, access control, and data access from scratch — for **one small app.**
+Now realize IT and Security have been doing exactly that, at enormous scale, for
+twenty years. Every new tool — a SIEM, an observability platform, a threat-
+detection product, an analytics suite — quietly shipped with *its own* telemetry
+stack underneath: its own collection, its own storage, its own schema, its own
+governance. Organizations ended up collecting the same data multiple times,
+storing it multiple times, governing it multiple times, and paying for it multiple
+times. Even the "broad portfolios" from a single vendor are often fragmented under
+the hood — different products, acquired at different times, each with its own
+plumbing. Building solution after solution, the industry **accidentally rebuilt
+the same telemetry infrastructure over and over again.**
 
-AI breaks that model, because **an AI agent doesn't care which application
-generated the data — it cares about governed access to the data itself.** The
-future won't be built around individual applications. It'll be built around the
-telemetry platform they all share.
+That was tolerable when applications were where the value lived. AI changes the
+equation. AI visibility, AI SOC, agentic operations — every AI experience needs
+access to the telemetry, and most vendors answer the same way: *send us another
+copy of your data.* That doesn't scale. **The challenge is no longer collecting
+telemetry — it's providing secure, governed access to it across people,
+applications, and agents without duplicating the infrastructure every single
+time.** Put bluntly: **AI cannot reason over data it cannot access.** The first
+challenge isn't centralization. It's access.
 
-That's the platform I *wish* I'd had for my little app — and it's exactly what
-Cribl is building for IT and Security. Remember the hosting realization: the
-valuable thing isn't a place to run code, it's a place to run code that's
-*already wired into identity, access control, and your data.* That is the
-shape of what Cribl provides for telemetry experiences:
+The fix is the same one I stumbled into for my app, just at a different scale:
+**separate the telemetry infrastructure from the apps that consume it.** Build the
+shared capabilities once — collection, routing, transformation, enrichment,
+governance, storage, federation, search, and access — and let every experience
+draw on them, instead of each one rebuilding its own. That's the platform I *wish*
+I'd had: a governed home for experiences, RBAC and governance baked in, and access
+to the data wherever it lives — stored with the platform *and* federated across
+the tools and stores it already sits in.
 
-- **A governed home for the experiences themselves** — not just "a server," but a
-  place to run apps and agents that's already connected to access control and the
-  data, so every new experience isn't a from-scratch security project.
-- **RBAC and governance baked in**, so the right people — and the right agents —
-  get the right access by default.
-- **A robust engine with access to the data wherever it lives** — both telemetry
-  stored with Cribl and **federated** across the other tools, stores, and
-  databases it already sits in.
-
-Here's the kicker for the AI era: **AI cannot reason over data it cannot
-access.** As agents move into IT and Security — AI SOC, agentic operations, agent
-governance, LLM observability — they become first-class *consumers* of telemetry.
-They don't want a copy of the data or yet another integration; they want
-governed, scoped access to the data wherever it already lives. So the first
-challenge isn't centralizing everything. **The first challenge is access.**
-
-There's a clean analogy for what this kind of platform really is. AWS doesn't
-sell Netflix — AWS sells the platform that lets Netflix exist. I built a "Netflix"
-(a very small one, for my marketing team). What I kept wishing for was the "AWS"
-underneath it: the governed place for my experience to live and reach its data.
-For IT and Security telemetry, **Cribl is that platform.**
+There's a clean way to say what that kind of platform is. **AWS doesn't sell
+Netflix — AWS sells the platform that lets Netflix exist.** I built a tiny
+"Netflix" for my marketing team; what I kept wishing for was the "AWS" underneath
+it. For IT and Security telemetry, **Cribl is that platform — and crucially, it
+isn't another solution. It's the shared telemetry infrastructure every solution
+needs.**
 
 ---
 
-**Cribl: The AI Platform for Telemetry**
+### In Cribl's words
 
-For decades, IT and Security have been organized around applications —
-observability platforms, SIEMs, APM tools, analytics platforms, and countless
-custom solutions — each building its own telemetry infrastructure, data stores,
-schemas, and workflows. More tools meant more silos, more integrations, more
-cost.
+*Cribl: The AI Platform for Telemetry*
 
-The AI era changes the model. AI agents don't care which application generated
-the data; they care about access to the data itself. Telemetry becomes the
-critical raw material that powers people, applications, and agents alike — and the
-future gets built around platforms that make telemetry accessible, usable, and
-actionable wherever it lives.
+For more than two decades, IT and Security innovation has been driven by
+applications. Organizations adopted observability platforms to monitor systems,
+SIEMs to investigate threats, analytics tools to generate insights, and countless
+specialized solutions to solve emerging operational challenges.
 
-**Every IT and Security experience of the next decade will be built on a
-telemetry platform** — security, observability, analytics, automation, AI
-visibility, AI SOC, agentic operations, and applications we haven't imagined yet.
-Different experiences, same platform.
+Each of these applications delivered value. Each also introduced its own telemetry
+infrastructure, data stores, schemas, integrations, and operational requirements.
+As organizations adopted more solutions, they accumulated more copies of the same
+data, more infrastructure to operate, and more complexity to manage.
 
-And telemetry needs its *own* platform. General-purpose data platforms
-(Snowflake, Databricks) aren't going anywhere for business data — but telemetry's
-volume, velocity, variety, and economics are a different beast. It's often
-collected before anyone knows whether it will ever be needed, so organizations
-can't predict which telemetry will matter. They need access to all of it.
-Telemetry doesn't replace the data platform; it creates the need for a telemetry
-platform.
+For years, this tradeoff was acceptable because applications were the primary
+source of value. The AI era changes that equation.
 
-Cribl didn't set out to build another SIEM or observability tool. We started with
-a simpler problem — helping organizations control and unlock the value of their
-telemetry — and solving it required collection, routing, transformation,
-governance, storage, federation, search, and access. What emerged was larger than
-a pipeline or a set of products: **we built a platform.**
+AI agents, copilots, and automated workflows do not care which application
+generated the data. They care about access to the data itself. As organizations
+deploy AI across IT and Security, telemetry becomes the critical raw material that
+powers people, applications, and agents alike — shifting the center of gravity from
+individual applications to the platform that makes telemetry accessible, usable,
+and actionable.
+
+**Every IT and Security experience of the next decade will be built on a telemetry
+platform.** Security, observability, analytics, automation, AI visibility, AI SOC,
+agentic operations, and future experiences we have not yet imagined will all depend
+on access to the same underlying telemetry.
+
+Organizations are not starting from a blank slate. Years of investment have left
+telemetry scattered across observability platforms, security tools, cloud services,
+data lakes, and operational systems. The challenge is no longer collecting data —
+it's accessing, governing, and operationalizing it across an increasingly complex
+environment. The first challenge is not centralization. **The first challenge is
+access.**
+
+Cribl did not begin with a vision of building another SIEM, observability platform,
+or analytics solution. We started with a simpler problem: helping organizations
+control and unlock the value of their telemetry. Solving it required collection,
+routing, transformation, governance, storage, federation, search, and access — and
+what emerged was larger than a pipeline or a collection of products. We realized
+the industry had spent twenty years accidentally rebuilding the same telemetry
+infrastructure over and over. **We are not building another solution. We are
+providing the shared telemetry infrastructure that every solution needs.**
 
 Today, **Cribl, the AI Platform for Telemetry**, connects people, applications,
 and agents to IT and Security data wherever it resides. Powered by the **Data
-Engine for IT and Security**, it lets organizations collect, manage, govern,
-access, and act on their data at AI scale. Some experiences will be built by
-Cribl, some by partners, some by customers — and many generated dynamically by AI.
-All of them depend on the same platform to access and act on telemetry.
-
-The result is choice, control, and flexibility: adopt the best technologies you
-need today, and keep the freedom to embrace whatever comes next.
+Engine for IT and Security**, Cribl enables organizations to collect, manage,
+govern, access, and act on telemetry at AI scale. Some experiences will be built by
+Cribl; others by partners, customers, and AI itself. All of them depend on the same
+telemetry platform.
 
 The market is just now realizing it needs a telemetry platform. **Cribl already
 has one.**
 
 ---
 
-*Positioning now reflects the refined narrative + messaging pillars (Access
-Before Centralization; Telemetry Platform for the AI Era; Choice/Control/
-Flexibility) and the AWS/EC2 analogy from your strategy doc.*
+*Positioning standardized on the **executive summary** (the "In Cribl's words"
+block above), with the **technical narrative**'s insight — the industry
+accidentally rebuilding the same telemetry infrastructure, and separating
+infrastructure from the apps that consume it — woven into the personal section.
+Both source texts are preserved in `docs/CRIBL-POSITIONING.md`.*
 
 ### [TODO / fill-ins]
 - **Proof points / products**: if you want concrete name-drops (Stream, Edge,
