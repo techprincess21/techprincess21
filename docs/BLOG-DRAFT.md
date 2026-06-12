@@ -157,6 +157,12 @@ infrastructure. They're built and deployed *on the platform*, with governed acce
 to the telemetry already wired in — exactly the thing I had to assemble by hand
 for one small tool, delivered as a product.
 
+Here's my favorite proof that I believe all of this: I'm running Goatsana — the
+app I built — **on Cribl's own platform.** I didn't just build an app and write a
+think-piece about platforms; I deployed it on the very kind of platform this
+piece is about. [TODO: confirm the exact phrasing you want — "Cribl's own
+platform" vs "Cribl's cloud" — so it's precisely accurate.]
+
 And this isn't thin or theoretical. Cribl already ships a deep, growing set of
 capabilities and experiences — Insights, detections that run right in the Stream,
 background detections, search, and far more than I could list here (the real
@@ -220,6 +226,13 @@ telemetry platform.
 
 The market is just now realizing it needs a telemetry platform. **Cribl already
 has one.**
+
+---
+
+*P.S. — I'm writing this as someone who just lived the whole arc: pick an engine,
+find somewhere to host it, wrangle access and identity and RBAC, and only then get
+to the fun part. The app was the easy part. The platform was everything. Mine
+happens to be running on Cribl's. 🐐*
 
 ---
 
