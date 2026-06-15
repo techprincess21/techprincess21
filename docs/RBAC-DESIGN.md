@@ -121,25 +121,27 @@ works today for roles; we extend it to per-board.)
 
 ---
 
-## 6. Suggested build order (after you approve the design)
-1. **Base-role control** — manual override of Okta groups, custom-role
-   assignment, add-by-email, the Co-Admin role, and Org-Admin protection.
-2. **Public/Private on existing boards** — visibility, members, exclusions, tab
+## 6. Build order
+1. ✅ **Base-role control (BUILT)** — manual override of Okta groups, custom-role
+   assignment, add people by Okta email (pre-assign before first login), the
+   **Co-Admin** role, and **Org-Admin protection** (only an Org Admin can
+   create/change/remove an Org Admin or edit the Org Admin / Co-Admin role
+   definitions). Enforced server-side in `/api/config`.
+2. ⬜ **Public/Private on existing boards** — visibility, members, exclusions, tab
    filtering, per-board role elevation, server enforcement, the access panel.
-3. **Create new boards** — spin up a new board (from a template or by cloning an
+3. ⬜ **Create new boards** — spin up a new board (from a template or by cloning an
    existing one), with you as owner.
-4. **Clone & polish** — clone members across boards, small quality-of-life bits.
+4. ⬜ **Clone & polish** — clone members across boards, small quality-of-life bits.
 
 ---
 
 ## 7. Open questions for you
-1. **Team base role:** should Marketing/CX default to **Project Admin** (can
-   create boards) or **Editor** (can edit, but not create new boards)? You said
-   "capable of creating a new project," which points to **Project Admin** — confirm?
+1. **Team base role:** ✅ **DECIDED — Project Admin** (can create boards + run
+   automations). Adjustable later if it's too much.
 2. **New-board default:** ✅ **DECIDED — boards start 🌐 Public** (culture of
    transparency; flip the sensitive ones to Private).
-3. **Who can make a board public/private:** just admins, or also the board's
-   owner? My rec: **the owner can**, for their own board.
+3. **Who can make a board public/private:** ✅ **DECIDED — the board's owner can**
+   flip their own board either way (and admins can flip any board).
 4. **CX team Okta group:** ⏸️ **HELD** — likely rolled into "Marketing Team";
    Abby to confirm. For now, ensure **`Employees` / `All` can access** and Abby
    overrides individuals locally as needed.

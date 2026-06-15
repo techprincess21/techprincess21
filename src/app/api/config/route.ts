@@ -14,10 +14,15 @@ import {
   setTabOrder,
   setUserRole,
 } from "@/lib/config-store";
-import { can } from "@/lib/auth";
+import { can, getIdentity } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+// Only an Org Admin may create/change/remove another Org Admin, or edit the
+// top-tier role definitions (Org Admin / Co-Admin). This is what stops a
+// Co-Admin from removing or demoting the Org Admin who set them up.
+const PROTECTED_ROLES = new Set(["Org Admin", "Co-Admin"]);
 
 export async function GET() {
   const config = await getConfig();
@@ -45,6 +50,24 @@ export async function PUT(req: Request) {
   if (CUSTOMIZE.has(body?.action) && !(await can("board.customize"))) return forbidden();
   if (ACCESS.has(body?.action) && !(await can("roles.manage"))) return forbidden();
 
+  // Org-Admin protection: a non-Org-Admin can't touch Org Admins or the
+  // protected role definitions, even though they hold roles.manage.
+  if (ACCESS.has(body?.action)) {
+    const me = await getIdentity();
+    if (me.role !== "Org Admin") {
+      const cfg = await getConfig();
+      const targetCurrentRole = typeof body?.userId === "string" ? cfg.userRoles[body.userId] : undefined;
+      const blocked =
+        (body.action === "userRole" && (PROTECTED_ROLES.has(body.role) || PROTECTED_ROLES.has(targetCurrentRole ?? ""))) ||
+        (body.action === "userRemove" && PROTECTED_ROLES.has(cfg.userRoles[body.id] ?? "")) ||
+        (body.action === "userAdd" && PROTECTED_ROLES.has(body.role)) ||
+        (body.action === "role" && PROTECTED_ROLES.has(body.role));
+      if (blocked) {
+        return NextResponse.json({ error: "Only an Org Admin can manage Org Admins." }, { status: 403 });
+      }
+    }
+  }
+
   if (body?.action === "options" && body.viewId && body.columnKey && Array.isArray(body.options)) {
     return NextResponse.json({ config: await setColumnOptions(body.viewId, body.columnKey, strList(body.options)) });
   }
@@ -69,7 +92,8 @@ export async function PUT(req: Request) {
   }
   if (body?.action === "userAdd" && typeof body.name === "string" && body.name.trim()) {
     const role = typeof body.role === "string" ? body.role : "Viewer";
-    return NextResponse.json({ config: await addUser(body.name.trim(), role) });
+    const email = typeof body.email === "string" && body.email.trim() ? body.email.trim() : undefined;
+    return NextResponse.json({ config: await addUser(body.name.trim(), role, email) });
   }
   if (body?.action === "userRemove" && typeof body.id === "string") {
     return NextResponse.json({ config: await removeUser(body.id) });

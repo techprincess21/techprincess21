@@ -5,10 +5,13 @@ import { DEMO_USERS, PERMISSION_CATALOG, ROLE_LIST } from "@/lib/rbac";
 
 // Org Admin surface to (a) edit which permissions each role has and (b) add
 // people and assign them roles. Persists immediately via the parent's callbacks.
+const PROTECTED_ROLES = new Set(["Org Admin", "Co-Admin"]);
+
 export default function AccessModal({
   roles,
   userRoles,
   users,
+  meRole,
   onSaveRole,
   onSaveUserRole,
   onAddUser,
@@ -18,14 +21,17 @@ export default function AccessModal({
   roles: { [role: string]: string[] };
   userRoles: { [userId: string]: string };
   users: { id: string; name: string }[];
+  meRole: string;
   onSaveRole: (role: string, permissions: string[]) => void;
   onSaveUserRole: (userId: string, role: string) => void;
-  onAddUser: (name: string) => void;
+  onAddUser: (name: string, email?: string) => void;
   onRemoveUser: (id: string) => void;
   onClose: () => void;
 }) {
   const [tab, setTab] = useState<"roles" | "people">("roles");
   const [newName, setNewName] = useState("");
+  const [newEmail, setNewEmail] = useState("");
+  const isOrgAdmin = meRole === "Org Admin";
 
   function togglePerm(role: string, key: string) {
     const current = roles[role] ?? [];
@@ -36,8 +42,9 @@ export default function AccessModal({
   function addPerson() {
     const n = newName.trim();
     if (!n) return;
-    onAddUser(n);
+    onAddUser(n, newEmail.trim() || undefined);
     setNewName("");
+    setNewEmail("");
   }
 
   const builtinIds = new Set(DEMO_USERS.map((u) => u.id));
@@ -56,8 +63,8 @@ export default function AccessModal({
           </button>
         </div>
         <p className="modal-sub">
-          Define what each role can do, and assign people to roles. (Demo: people are stand-ins for
-          Okta identities — group membership will drive these assignments once SSO is connected.)
+          Define what each role can do, and assign people to roles. People sign in with Okta;
+          their Okta groups set a default role, and anything you set here overrides it per person.
         </p>
 
         <div className="access-tabs">
@@ -95,36 +102,57 @@ export default function AccessModal({
             </div>
           ) : (
             <div className="people-roles">
-              {allPeople.map((u) => (
-                <div className="pr-row" key={u.id}>
-                  <span className="pr-name">{u.name}</span>
-                  <div className="pr-controls">
-                    <select
-                      value={userRoles[u.id] ?? "Viewer"}
-                      onChange={(e) => onSaveUserRole(u.id, e.target.value)}
-                    >
-                      {ROLE_LIST.map((r) => (
-                        <option key={r} value={r}>
-                          {r}
-                        </option>
-                      ))}
-                    </select>
-                    {builtinIds.has(u.id) ? (
-                      <span className="pr-tag">demo</span>
-                    ) : (
-                      <button className="pr-remove" title="Remove person" onClick={() => onRemoveUser(u.id)}>
-                        ×
-                      </button>
-                    )}
+              {allPeople.map((u) => {
+                const role = userRoles[u.id] ?? "Viewer";
+                const locked = PROTECTED_ROLES.has(role) && !isOrgAdmin;
+                const isEmail = u.id.includes("@");
+                return (
+                  <div className="pr-row" key={u.id}>
+                    <span className="pr-name">
+                      {u.name}
+                      {isEmail && <span className="pr-email">{u.id}</span>}
+                    </span>
+                    <div className="pr-controls">
+                      <select
+                        value={role}
+                        disabled={locked}
+                        title={locked ? "Only an Org Admin can change this person's role" : undefined}
+                        onChange={(e) => onSaveUserRole(u.id, e.target.value)}
+                      >
+                        {ROLE_LIST.map((r) => (
+                          <option key={r} value={r} disabled={PROTECTED_ROLES.has(r) && !isOrgAdmin}>
+                            {r}
+                          </option>
+                        ))}
+                      </select>
+                      {builtinIds.has(u.id) ? (
+                        <span className="pr-tag">demo</span>
+                      ) : (
+                        <button
+                          className="pr-remove"
+                          title={locked ? "Only an Org Admin can remove this person" : "Remove person"}
+                          disabled={locked}
+                          onClick={() => onRemoveUser(u.id)}
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
 
               <div className="pr-add">
                 <input
                   value={newName}
-                  placeholder="Add a person by name…"
+                  placeholder="Name…"
                   onChange={(e) => setNewName(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && addPerson()}
+                />
+                <input
+                  value={newEmail}
+                  placeholder="Okta email (optional)…"
+                  onChange={(e) => setNewEmail(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && addPerson()}
                 />
                 <button className="btn btn-primary" onClick={addPerson}>
@@ -132,8 +160,10 @@ export default function AccessModal({
                 </button>
               </div>
               <p className="cz-note">
-                New people start as Viewer — set their role above. (Until Okta SSO, this list is how
-                you grant access; with SSO, Okta groups will map to these roles.)
+                New people start as Viewer — set their role above. Add a person by their{" "}
+                <strong>Okta email</strong> to pre-assign a role before they ever sign in; their
+                role then applies automatically on first login (and overrides their Okta-group
+                default). Okta groups still set the default for everyone you don&apos;t list here.
               </p>
             </div>
           )}

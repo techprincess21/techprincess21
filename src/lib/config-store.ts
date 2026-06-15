@@ -156,10 +156,14 @@ export async function setUserRole(userId: string, role: string) {
   return cfg;
 }
 
-export async function addUser(name: string, role = "Viewer") {
+export async function addUser(name: string, role = "Viewer", explicitId?: string) {
   const cfg = await getConfig();
-  const id = `u_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
-  cfg.users = [...cfg.users, { id, name }];
+  // If an id is given (an Okta email), key the user by it so the role applies the
+  // moment they sign in — even before their first login. Otherwise generate one.
+  const id = explicitId?.trim()
+    ? explicitId.trim().toLowerCase()
+    : `u_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+  if (!cfg.users.some((u) => u.id === id)) cfg.users = [...cfg.users, { id, name }];
   cfg.userRoles[id] = role;
   await persist();
   return cfg;

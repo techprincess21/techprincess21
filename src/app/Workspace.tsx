@@ -151,9 +151,9 @@ export default function Workspace({
     setConfig((p) => (p ? { ...p, automations: p.automations.filter((a) => a.id !== id) } : p));
     putConfig({ action: "automationDelete", id });
   }
-  function addUser(name: string) {
+  function addUser(name: string, email?: string) {
     setAccessDirty(true);
-    putConfig({ action: "userAdd", name });
+    putConfig({ action: "userAdd", name, email });
   }
   function removeUser(id: string) {
     setAccessDirty(true);
@@ -327,6 +327,7 @@ export default function Workspace({
           roles={config.roles}
           userRoles={config.userRoles}
           users={config.users}
+          meRole={me.role}
           onSaveRole={saveRole}
           onSaveUserRole={saveUserRole}
           onAddUser={addUser}

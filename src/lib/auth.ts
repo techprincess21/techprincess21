@@ -44,9 +44,16 @@ export async function getIdentity(): Promise<Identity> {
     const email = session?.user?.email;
     if (email) {
       const groups = ((session as { groups?: string[] } | null)?.groups ?? []) as string[];
-      // ADMIN_EMAILS overrides group mapping (bootstrap); else map from groups.
-      const role = adminEmails().includes(email.toLowerCase()) ? "Org Admin" : groupsToRole(groups);
-      return { id: email, name: session?.user?.name ?? email, role, perms: permsFor(role), viaOkta: true, signedIn: true, groups };
+      const lower = email.toLowerCase();
+      // Base-role precedence: ADMIN_EMAILS (bootstrap) → manual in-app assignment
+      // (overrides groups, can be a custom role) → Okta group mapping → Viewer.
+      const manual = cfg.userRoles[email] ?? cfg.userRoles[lower];
+      const role = adminEmails().includes(lower)
+        ? "Org Admin"
+        : manual && cfg.roles[manual]
+          ? manual
+          : groupsToRole(groups);
+      return { id: lower, name: session?.user?.name ?? email, role, perms: permsFor(role), viaOkta: true, signedIn: true, groups };
     }
     // Okta on, nobody signed in yet → read-only guest (page shows sign-in).
     return { id: "guest", name: "Guest", role: "Viewer", perms: permsFor("Viewer"), viaOkta: true, signedIn: false };

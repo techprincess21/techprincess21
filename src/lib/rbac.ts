@@ -40,16 +40,23 @@ const EDITOR = [
   "board.customize",
 ];
 const PROJECT_ADMIN = [...EDITOR, "project.create", "automation.run"];
+// Co-Admin holds every permission, like Org Admin. The differences are policy,
+// not permissions: a Co-Admin can be excluded from specific boards (see the
+// per-board access design) and cannot remove or demote an Org Admin.
+const CO_ADMIN = [...ALL_PERMS];
 
 export const DEFAULT_ROLES: { [role: string]: string[] } = {
   Viewer: VIEWER,
   Contributor: CONTRIBUTOR,
   Editor: EDITOR,
   "Project Admin": PROJECT_ADMIN,
+  "Co-Admin": CO_ADMIN,
   "Org Admin": [...ALL_PERMS],
 };
 
-export const ROLE_LIST = ["Viewer", "Contributor", "Editor", "Project Admin", "Org Admin"];
+// Ordered low→high privilege (used to pick the strongest role a user qualifies
+// for from their Okta groups).
+export const ROLE_LIST = ["Viewer", "Contributor", "Editor", "Project Admin", "Co-Admin", "Org Admin"];
 
 // Parse the optional explicit Okta-group -> role map from the environment.
 // Format: a JSON object of { "Okta Group Name": "Role" }, e.g.
