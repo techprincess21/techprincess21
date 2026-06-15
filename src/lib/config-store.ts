@@ -1,11 +1,10 @@
-import { promises as fs } from "node:fs";
-import path from "node:path";
 import { VIEWS } from "@/lib/views";
 import { DEFAULT_ROLES, DEFAULT_USER_ROLES } from "@/lib/rbac";
 import type { ConfigAutomation } from "@/lib/playbooks";
 import type { BoardAccess, BoardsConfig } from "@/lib/board-access";
 import { BOARD_TEMPLATE_BY_KEY } from "@/lib/board-templates";
 import type { ViewDef } from "@/lib/types";
+import { loadJson, saveJson } from "@/lib/store";
 
 // Per-board customization store.
 //
@@ -39,9 +38,6 @@ export interface AppConfig {
   customBoards: ViewDef[];
 }
 
-const DATA_DIR = process.env.DATA_DIR || path.join(process.cwd(), ".data");
-const CONFIG_FILE = path.join(DATA_DIR, "config.json");
-
 // Owner autocomplete starts empty — names accrue as the team uses the app.
 const DEFAULT_PEOPLE: string[] = [];
 
@@ -72,63 +68,50 @@ function defaultConfig(): AppConfig {
   };
 }
 
-let cache: AppConfig | null = null;
-
+// Load the persisted config and layer it over code-defined defaults. We read
+// fresh each time (no module cache) so writes from one serverless instance are
+// visible to the next — durability + consistency come from the store layer.
 export async function getConfig(): Promise<AppConfig> {
-  if (cache) return cache;
   const base = defaultConfig();
-  try {
-    const raw = await fs.readFile(CONFIG_FILE, "utf8");
-    const saved = JSON.parse(raw) as Partial<AppConfig>;
-    cache = {
-      options: { ...base.options, ...(saved.options ?? {}) },
-      columnOrder: { ...base.columnOrder, ...(saved.columnOrder ?? {}) },
-      tabOrder: saved.tabOrder?.length ? saved.tabOrder : base.tabOrder,
-      colors: saved.colors ?? {},
-      people: saved.people?.length ? saved.people : base.people,
-      roles: { ...base.roles, ...(saved.roles ?? {}) },
-      userRoles: { ...base.userRoles, ...(saved.userRoles ?? {}) },
-      users: saved.users ?? [],
-      playbooks: saved.playbooks ?? {},
-      automations: saved.automations ?? [],
-      boards: saved.boards ?? {},
-      customBoards: saved.customBoards ?? [],
-    };
-  } catch {
-    cache = base;
-    await persist();
-  }
-  return cache;
+  const saved = await loadJson<Partial<AppConfig>>("config", {});
+  return {
+    options: { ...base.options, ...(saved.options ?? {}) },
+    columnOrder: { ...base.columnOrder, ...(saved.columnOrder ?? {}) },
+    tabOrder: saved.tabOrder?.length ? saved.tabOrder : base.tabOrder,
+    colors: saved.colors ?? {},
+    people: saved.people?.length ? saved.people : base.people,
+    roles: { ...base.roles, ...(saved.roles ?? {}) },
+    userRoles: { ...base.userRoles, ...(saved.userRoles ?? {}) },
+    users: saved.users ?? [],
+    playbooks: saved.playbooks ?? {},
+    automations: saved.automations ?? [],
+    boards: saved.boards ?? {},
+    customBoards: saved.customBoards ?? [],
+  };
 }
 
-async function persist(): Promise<void> {
-  if (!cache) return;
-  try {
-    await fs.mkdir(DATA_DIR, { recursive: true });
-    await fs.writeFile(CONFIG_FILE, JSON.stringify(cache, null, 2), "utf8");
-  } catch {
-    // read-only fs (serverless): keep in-memory
-  }
+async function persist(cfg: AppConfig): Promise<void> {
+  await saveJson("config", cfg);
 }
 
 export async function setColumnOptions(viewId: string, columnKey: string, opts: string[]) {
   const cfg = await getConfig();
   cfg.options[viewId] = { ...(cfg.options[viewId] ?? {}), [columnKey]: opts };
-  await persist();
+  await persist(cfg);
   return cfg;
 }
 
 export async function setColumnOrder(viewId: string, keys: string[]) {
   const cfg = await getConfig();
   cfg.columnOrder[viewId] = keys;
-  await persist();
+  await persist(cfg);
   return cfg;
 }
 
 export async function setTabOrder(ids: string[]) {
   const cfg = await getConfig();
   cfg.tabOrder = ids;
-  await persist();
+  await persist(cfg);
   return cfg;
 }
 
@@ -139,28 +122,28 @@ export async function setColor(viewId: string, columnKey: string, value: string,
   if (hex) forCol[value] = hex;
   else delete forCol[value];
   cfg.colors[viewId] = { ...forView, [columnKey]: forCol };
-  await persist();
+  await persist(cfg);
   return cfg;
 }
 
 export async function setPeople(people: string[]) {
   const cfg = await getConfig();
   cfg.people = people;
-  await persist();
+  await persist(cfg);
   return cfg;
 }
 
 export async function setRole(role: string, permissions: string[]) {
   const cfg = await getConfig();
   cfg.roles[role] = permissions;
-  await persist();
+  await persist(cfg);
   return cfg;
 }
 
 export async function setUserRole(userId: string, role: string) {
   const cfg = await getConfig();
   cfg.userRoles[userId] = role;
-  await persist();
+  await persist(cfg);
   return cfg;
 }
 
@@ -173,7 +156,7 @@ export async function addUser(name: string, role = "Viewer", explicitId?: string
     : `u_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
   if (!cfg.users.some((u) => u.id === id)) cfg.users = [...cfg.users, { id, name }];
   cfg.userRoles[id] = role;
-  await persist();
+  await persist(cfg);
   return cfg;
 }
 
@@ -181,7 +164,7 @@ export async function removeUser(id: string) {
   const cfg = await getConfig();
   cfg.users = cfg.users.filter((u) => u.id !== id);
   delete cfg.userRoles[id];
-  await persist();
+  await persist(cfg);
   return cfg;
 }
 
@@ -194,21 +177,21 @@ export async function setPlaybookOverride(
   const wt = cfg.playbooks[workType] ?? {};
   wt[team] = { ...(wt[team] ?? {}), ...override };
   cfg.playbooks[workType] = wt;
-  await persist();
+  await persist(cfg);
   return cfg;
 }
 
 export async function addAutomation(automation: ConfigAutomation) {
   const cfg = await getConfig();
   cfg.automations = [...cfg.automations.filter((a) => a.id !== automation.id), automation];
-  await persist();
+  await persist(cfg);
   return cfg;
 }
 
 export async function deleteAutomation(id: string) {
   const cfg = await getConfig();
   cfg.automations = cfg.automations.filter((a) => a.id !== id);
-  await persist();
+  await persist(cfg);
   return cfg;
 }
 
@@ -222,7 +205,7 @@ function ensureBoard(cfg: AppConfig, boardId: string): BoardAccess {
 export async function setBoardVisibility(boardId: string, visibility: "public" | "private") {
   const cfg = await getConfig();
   ensureBoard(cfg, boardId).visibility = visibility;
-  await persist();
+  await persist(cfg);
   return cfg;
 }
 
@@ -230,7 +213,7 @@ export async function setBoardMember(boardId: string, email: string, role: strin
   const cfg = await getConfig();
   const b = ensureBoard(cfg, boardId);
   b.members = { ...b.members, [email.toLowerCase()]: role };
-  await persist();
+  await persist(cfg);
   return cfg;
 }
 
@@ -240,7 +223,7 @@ export async function removeBoardMember(boardId: string, email: string) {
   const next = { ...b.members };
   delete next[email.toLowerCase()];
   b.members = next;
-  await persist();
+  await persist(cfg);
   return cfg;
 }
 
@@ -249,7 +232,7 @@ export async function setBoardExclusion(boardId: string, email: string, excluded
   const b = ensureBoard(cfg, boardId);
   const e = email.toLowerCase();
   b.excluded = excluded ? [...new Set([...b.excluded, e])] : b.excluded.filter((x) => x !== e);
-  await persist();
+  await persist(cfg);
   return cfg;
 }
 
@@ -279,7 +262,7 @@ export async function addCustomBoard(opts: {
   cfg.columnOrder[id] = tpl.columns.map((c) => c.key);
   cfg.boards[id] = { owner: opts.owner, visibility: opts.visibility, members: {}, excluded: [] };
   cfg.tabOrder = [...cfg.tabOrder, id];
-  await persist();
+  await persist(cfg);
   return { cfg, id };
 }
 
@@ -330,7 +313,7 @@ export async function addClonedBoard(opts: {
     excluded: opts.copyMembers && srcAccess ? [...srcAccess.excluded] : [],
   };
   cfg.tabOrder = [...cfg.tabOrder, id];
-  await persist();
+  await persist(cfg);
   return { cfg, id, sourceCollection: source.collection };
 }
 
@@ -342,7 +325,7 @@ export async function deleteCustomBoard(id: string) {
   delete cfg.columnOrder[id];
   delete cfg.colors[id];
   cfg.tabOrder = cfg.tabOrder.filter((t) => t !== id);
-  await persist();
+  await persist(cfg);
   return cfg;
 }
 
@@ -353,6 +336,6 @@ export async function cloneBoardMembers(fromId: string, toId: string) {
   const to = ensureBoard(cfg, toId);
   to.members = { ...to.members, ...from.members };
   to.excluded = [...new Set([...to.excluded, ...from.excluded])];
-  await persist();
+  await persist(cfg);
   return cfg;
 }

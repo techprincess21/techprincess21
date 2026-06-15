@@ -106,6 +106,29 @@ The Jira field mapping (e.g. `targetPrompt → summary`, `stage → workflow
 transition`, `owner → assignee`) is documented inline in
 `src/lib/adapters/jira.ts`.
 
+## Persistence
+
+Boards, rows, roles, and access all save through a small storage layer
+(`src/lib/store.ts`) with two backends:
+
+- **Durable (production):** a KV store (Vercel KV / Upstash Redis). Set these env
+  vars and everything survives serverless cold starts:
+
+  ```bash
+  KV_REST_API_URL=...     # or UPSTASH_REDIS_REST_URL
+  KV_REST_API_TOKEN=...   # or UPSTASH_REDIS_REST_TOKEN
+  ```
+
+  In Vercel: **Storage → Create → KV (Upstash Redis) → Connect to project**; the
+  env vars are added automatically. No code changes, no npm dependency (we call
+  the KV REST API directly). Redeploy and data is durable.
+
+- **Local dev (fallback):** when those vars are absent, data is written to
+  `.data/*.json` (git-ignored). Delete `.data/` to reset.
+
+Without either (e.g. a serverless deploy with no KV), the app still runs but data
+is in-memory only and resets on cold start.
+
 ## Run it
 
 ```bash

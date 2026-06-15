@@ -1,44 +1,25 @@
-import { promises as fs } from "node:fs";
-import path from "node:path";
 import type { FieldValue, Record } from "@/lib/types";
 import { SEED } from "@/lib/seed";
+import { loadJson, saveJson } from "@/lib/store";
 import type { DataAdapter } from "./types";
 
-// In-memory adapter backed by a JSON file so edits survive across requests and
-// dev-server reloads. This stands in for Jira until real access is available.
-
-// Persist under .data locally. On read-only/serverless filesystems (e.g.
-// Vercel), fall back to a writable temp dir; if even that fails, we keep data
-// in memory for the life of the process (resets on cold start — fine for a
-// demo, and a non-issue once the Jira adapter is live).
-const DATA_DIR = process.env.DATA_DIR || path.join(process.cwd(), ".data");
-const DB_FILE = path.join(DATA_DIR, "db.json");
+// Default adapter: stores all collections as a single JSON blob via the storage
+// layer (durable KV when configured, local file otherwise). Reads fresh each
+// call so writes from one serverless instance are visible to the next.
+//
+// This stands in for Jira until the JiraAdapter is switched on. The whole-db
+// blob is fine for a small team; at scale we'd shard per collection/record.
 
 type Db = { [collection: string]: Record[] };
 
-let cache: Db | null = null;
+const KEY = "db";
 
 async function load(): Promise<Db> {
-  if (cache) return cache;
-  try {
-    const raw = await fs.readFile(DB_FILE, "utf8");
-    cache = JSON.parse(raw) as Db;
-  } catch {
-    // First run: seed from the spreadsheet snapshot.
-    cache = structuredClone(SEED);
-    await persist();
-  }
-  return cache!;
+  return loadJson<Db>(KEY, structuredClone(SEED));
 }
 
-async function persist(): Promise<void> {
-  if (!cache) return;
-  try {
-    await fs.mkdir(DATA_DIR, { recursive: true });
-    await fs.writeFile(DB_FILE, JSON.stringify(cache, null, 2), "utf8");
-  } catch {
-    // Read-only filesystem: keep working from the in-memory cache.
-  }
+async function persist(db: Db): Promise<void> {
+  await saveJson(KEY, db);
 }
 
 function newId(): string {
@@ -55,7 +36,7 @@ export class MockAdapter implements DataAdapter {
     const db = await load();
     const record: Record = { id: newId(), jiraKey: null, fields };
     db[collection] = [...(db[collection] ?? []), record];
-    await persist();
+    await persist(db);
     return record;
   }
 
@@ -69,14 +50,14 @@ export class MockAdapter implements DataAdapter {
     const idx = list.findIndex((r) => r.id === id);
     if (idx === -1) throw new Error(`Record ${id} not found in ${collection}`);
     list[idx] = { ...list[idx], fields: { ...list[idx].fields, ...fields } };
-    await persist();
+    await persist(db);
     return list[idx];
   }
 
   async remove(collection: string, id: string): Promise<void> {
     const db = await load();
     db[collection] = (db[collection] ?? []).filter((r) => r.id !== id);
-    await persist();
+    await persist(db);
   }
 
   async reorder(collection: string, ids: string[]): Promise<void> {
@@ -87,6 +68,6 @@ export class MockAdapter implements DataAdapter {
     // Array.prototype.sort is stable, so records absent from `ids` keep order.
     list.sort((a, b) => rank(a.id) - rank(b.id));
     db[collection] = list;
-    await persist();
+    await persist(db);
   }
 }
