@@ -86,6 +86,15 @@ export const VIEWS: ViewDef[] = [
     ],
   },
   {
+    id: "blueprints",
+    label: "📐 Blueprints",
+    collection: "launch",
+    description:
+      "Your team's plays. Browse how we run each kind of work — which tickets open in which teams' projects, with the people and steps — and start one in a click. Same engine as the ⚡ Automations tab; this is just the friendly front door.",
+    gallery: true,
+    columns: [],
+  },
+  {
     id: "automations",
     label: "⚡ Automations",
     collection: "tickets",

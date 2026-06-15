@@ -63,6 +63,8 @@ export interface ViewDef {
   hidden?: boolean;
   // Render the automations builder instead of a data grid for this tab.
   builder?: boolean;
+  // Render the Blueprints gallery (browsable "plays" + Start button) for this tab.
+  gallery?: boolean;
   // Show the CMO summary widgets across the top of this board.
   summary?: boolean;
 }

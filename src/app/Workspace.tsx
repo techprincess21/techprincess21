@@ -16,6 +16,7 @@ import BoardAccessModal from "./BoardAccessModal";
 import NewBoardModal from "./NewBoardModal";
 import NotificationsModal from "./NotificationsModal";
 import AutomationsBuilder from "./AutomationsBuilder";
+import BlueprintsGallery from "./BlueprintsGallery";
 
 interface Me {
   id: string;
@@ -67,7 +68,7 @@ export default function Workspace({
   // The boards that participate in public/private access (everything that isn't
   // the Automations builder).
   const dataBoardIds = useMemo(
-    () => new Set(allViews.filter((v) => !v.builder).map((v) => v.id)),
+    () => new Set(allViews.filter((v) => !v.builder && !v.gallery).map((v) => v.id)),
     [allViews]
   );
 
@@ -91,7 +92,7 @@ export default function Workspace({
   const visibleViews = useMemo(() => {
     if (!config) return orderedViews;
     return orderedViews.filter((v) => {
-      if (v.builder || !dataBoardIds.has(v.id)) return true;
+      if (v.builder || v.gallery || !dataBoardIds.has(v.id)) return true;
       return canSeeBoard(me, v.id, config.boards);
     });
   }, [orderedViews, config, me, dataBoardIds]);
@@ -397,7 +398,13 @@ export default function Workspace({
         )}
       </div>
 
-      {active && active.builder ? (
+      {active && active.gallery ? (
+        <BlueprintsGallery
+          description={active.description}
+          playbooks={listPlaybooks(config?.playbooks, config?.automations)}
+          canStart={has("item.create") && has("automation.run")}
+        />
+      ) : active && active.builder ? (
         <AutomationsBuilder
           description={active.description}
           overrides={config?.playbooks ?? {}}
