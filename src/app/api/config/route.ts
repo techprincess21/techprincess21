@@ -78,13 +78,16 @@ export async function PUT(req: Request) {
   // Creating a board requires the project.create permission.
   if (body?.action === "boardCreate" && !(await can("project.create"))) return forbidden();
 
-  // Deleting a board: only custom boards, and only by someone who can manage it.
+  // Deleting a board: requires the Delete-boards permission, and only custom
+  // boards, and only by someone who can manage that specific board.
   if (body?.action === "boardDelete") {
     const boardId = typeof body?.boardId === "string" ? body.boardId : "";
     const me = await getIdentity();
     const cfg = await getConfig();
     const isCustom = cfg.customBoards.some((b) => b.id === boardId);
-    if (!boardId || !isCustom || !canManageBoardAccess(me, boardId, cfg.boards)) return forbidden();
+    if (!boardId || !isCustom || !me.perms.includes("project.delete") || !canManageBoardAccess(me, boardId, cfg.boards)) {
+      return forbidden();
+    }
   }
 
   // Org-Admin protection: a non-Org-Admin can't touch Org Admins or the

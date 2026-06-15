@@ -376,7 +376,7 @@ export default function Workspace({
           boardId={active.id}
           boardLabel={active.label}
           access={config.boards[active.id]}
-          deletable={config.customBoards.some((b) => b.id === active.id)}
+          deletable={config.customBoards.some((b) => b.id === active.id) && has("project.delete")}
           otherBoards={allViews
             .filter((v) => dataBoardIds.has(v.id) && v.id !== active.id)
             .map((v) => ({ id: v.id, label: v.label }))}

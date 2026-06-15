@@ -23,6 +23,7 @@ export const PERMISSION_CATALOG: PermissionDef[] = [
   { key: "board.reorder", label: "Reorder rows", group: "Boards" },
   { key: "board.customize", label: "Customize boards (choices, colors, columns, tabs)", group: "Boards" },
   { key: "project.create", label: "Create projects / boards", group: "Admin" },
+  { key: "project.delete", label: "Delete boards", group: "Admin" },
   { key: "automation.run", label: "Run automations", group: "Admin" },
   { key: "board.access.manage", label: "Manage board members & visibility", group: "Admin" },
   { key: "board.viewAll", label: "See all boards (incl. private)", group: "Admin" },
@@ -41,7 +42,7 @@ const EDITOR = [
   "board.reorder",
   "board.customize",
 ];
-const PROJECT_ADMIN = [...EDITOR, "project.create", "automation.run", "board.access.manage"];
+const PROJECT_ADMIN = [...EDITOR, "project.create", "project.delete", "automation.run", "board.access.manage"];
 // Co-Admin holds every permission, like Org Admin. The differences are policy,
 // not permissions: a Co-Admin can be excluded from specific boards (see the
 // per-board access design) and cannot remove or demote an Org Admin.
