@@ -76,15 +76,11 @@ The launch boards have a row of summary widgets up top: **target launch date**,
 attention** (At Risk / Blocked / In Review), and the **next milestone** — a
 one-glance status for leadership.
 
-### Demo launches — Cribl Search, Fall '25 / CriblCon, FedRAMP
-Three real recent launches, each as its own board (deliverables grouped by
-phase), built from our prior launch spreadsheets. Great for showing "every
-launch becomes a project here." Admins can press **⬇ Import demo → Jira** once to
-create these deliverables as real issues in the Jira `MW` project (main
-deliverables only — no cross-team tickets).
-
 ### OKRs, Quarterly Plan, Topic Owners
 The rest of our planning surfaces, same treatment.
+
+All boards start empty — the team fills them in as real work happens (and, once
+the Jira adapter is switched on, from Jira).
 
 ---
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { DEMO_USERS, PERMISSION_CATALOG, ROLE_LIST } from "@/lib/rbac";
+import { PERMISSION_CATALOG, ROLE_LIST } from "@/lib/rbac";
 
 // Org Admin surface to (a) edit which permissions each role has and (b) add
 // people and assign them roles. Persists immediately via the parent's callbacks.
@@ -47,8 +47,7 @@ export default function AccessModal({
     setNewEmail("");
   }
 
-  const builtinIds = new Set(DEMO_USERS.map((u) => u.id));
-  const allPeople = [...DEMO_USERS, ...users];
+  const allPeople = users;
 
   // group the catalog for display
   const groups = [...new Set(PERMISSION_CATALOG.map((p) => p.group))];
@@ -125,18 +124,14 @@ export default function AccessModal({
                           </option>
                         ))}
                       </select>
-                      {builtinIds.has(u.id) ? (
-                        <span className="pr-tag">demo</span>
-                      ) : (
-                        <button
-                          className="pr-remove"
-                          title={locked ? "Only an Org Admin can remove this person" : "Remove person"}
-                          disabled={locked}
-                          onClick={() => onRemoveUser(u.id)}
-                        >
-                          ×
-                        </button>
-                      )}
+                      <button
+                        className="pr-remove"
+                        title={locked ? "Only an Org Admin can remove this person" : "Remove person"}
+                        disabled={locked}
+                        onClick={() => onRemoveUser(u.id)}
+                      >
+                        ×
+                      </button>
                     </div>
                   </div>
                 );

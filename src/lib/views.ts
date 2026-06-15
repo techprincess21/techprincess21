@@ -1,5 +1,4 @@
 import type { ViewDef } from "@/lib/types";
-import { LAUNCH_DEMO_VIEWS } from "@/lib/demo-launches";
 
 // The "tabs". Each view is a configured surface over a collection: which
 // columns to show, how to group, and the defaults for new rows. This is the
@@ -8,12 +7,9 @@ import { LAUNCH_DEMO_VIEWS } from "@/lib/demo-launches";
 const STAGES = ["Planning", "Recommendations Created", "With Marketing Strat", "Complete"];
 
 export const VIEWS: ViewDef[] = [
-  // Demo launch boards lead the tab bar (populated from prior launch sheets).
-  ...LAUNCH_DEMO_VIEWS,
   {
     id: "content",
     label: "Content Pipeline",
-    hidden: true,
     collection: "content",
     description:
       "Every content piece, grouped by workflow stage. Edits here are the ones that will write back to Jira.",
@@ -99,7 +95,6 @@ export const VIEWS: ViewDef[] = [
   {
     id: "okr",
     label: "OKRs",
-    hidden: true,
     collection: "okr",
     description: "Objectives & key results with progress against target.",
     groupBy: "objective",
@@ -119,7 +114,6 @@ export const VIEWS: ViewDef[] = [
   {
     id: "quarterPlan",
     label: "Quarterly Plan",
-    hidden: true,
     collection: "quarterPlan",
     description: "What each owner is committed to per quarter.",
     groupBy: "quarter",
@@ -132,7 +126,6 @@ export const VIEWS: ViewDef[] = [
   {
     id: "topicOwners",
     label: "Topic Owners",
-    hidden: true,
     collection: "topicOwners",
     description: "Primary and secondary PMM ownership by content topic.",
     defaults: {},

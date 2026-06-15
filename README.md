@@ -28,10 +28,11 @@ Built so far (all mock-backed, ready to flip to Jira):
 
 ## Status
 
-**Mock-backed and feature-rich; awaiting the Jira service account to go live.**
-All six surfaces render and edit; everything autosaves through a pluggable data
-adapter. The adapter is currently the in-memory `MockAdapter` (seeded from the
-real spreadsheets) so we can build and demo before Jira access is wired up.
+**Feature-rich; Okta SSO live; boards start empty for real use.** Five board
+templates (Content Pipeline, Launch Plan, OKRs, Quarterly Plan, Topic Owners)
+plus the ⚡ Automations builder all render and edit; everything autosaves through
+a pluggable data adapter. The adapter is the in-memory `MockAdapter` (now seeded
+empty) until the Jira adapter is switched on.
 
 ## Architecture
 

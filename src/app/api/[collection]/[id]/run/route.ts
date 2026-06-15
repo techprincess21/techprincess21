@@ -9,7 +9,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-const COLLECTIONS: CollectionId[] = ["content", "launch", "tickets", "launchSearch", "launchFall", "launchFedramp", "okr", "quarterPlan", "topicOwners"];
+const COLLECTIONS: CollectionId[] = ["content", "launch", "tickets", "okr", "quarterPlan", "topicOwners"];
 const isCollection = (v: string): v is CollectionId => (COLLECTIONS as string[]).includes(v);
 
 // Manually run the workflow playbook stage that matches a deliverable's current

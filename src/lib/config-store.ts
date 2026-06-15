@@ -34,12 +34,8 @@ export interface AppConfig {
 const DATA_DIR = process.env.DATA_DIR || path.join(process.cwd(), ".data");
 const CONFIG_FILE = path.join(DATA_DIR, "config.json");
 
-const DEFAULT_PEOPLE = [
-  "Abby Jacobs", "Bill Emmett", "Felicia Dorng", "Rachael Dula", "Joanna Zheng",
-  "Sabrina Schipper", "Alexandra Gates", "Connor Loudon", "Mariano Romano",
-  "Emily Walters", "Marie Hill", "Rachael King", "Carlo Tarantini",
-  "Mickey", "Nate", "Alex", "Desi", "Judith", "Holly",
-];
+// Owner autocomplete starts empty — names accrue as the team uses the app.
+const DEFAULT_PEOPLE: string[] = [];
 
 function defaultConfig(): AppConfig {
   const options: AppConfig["options"] = {};

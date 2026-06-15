@@ -104,21 +104,13 @@ export interface DemoUser {
   email?: string;
 }
 
-// Stand-in identities (replaced by Okta-provided identities later).
-export const DEMO_USERS: DemoUser[] = [
-  { id: "u_admin", name: "Abby Strong", email: "abbylstrong@gmail.com" },
-  { id: "u_pm", name: "Felicia Dorng" },
-  { id: "u_editor", name: "Bill Emmett" },
-  { id: "u_contributor", name: "Rachael Dula" },
-  { id: "u_viewer", name: "Joanna Zheng" },
-];
+// In production, identities come from Okta. This single fallback identity exists
+// only for local development with DEV_LOGIN=true (it is never shown in the Okta
+// app, the access panel, or the dev switcher's people list).
+export const DEMO_USERS: DemoUser[] = [{ id: "u_admin", name: "Local Admin" }];
 
 export const DEFAULT_USER_ROLES: { [userId: string]: string } = {
   u_admin: "Org Admin",
-  u_pm: "Project Admin",
-  u_editor: "Editor",
-  u_contributor: "Contributor",
-  u_viewer: "Viewer",
 };
 
 export const DEFAULT_USER_ID = "u_admin";

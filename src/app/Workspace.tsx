@@ -3,8 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ViewDef } from "@/lib/types";
 import type { AppConfig } from "@/lib/config-store";
-import { DEMO_USERS } from "@/lib/rbac";
-import { LAUNCH_DEMO_COLLECTIONS } from "@/lib/demo-launches";
 import { listPlaybooks } from "@/lib/playbooks";
 import EditableGrid from "./EditableGrid";
 import AccessModal from "./AccessModal";
@@ -34,8 +32,6 @@ export default function Workspace({
   const [dragTab, setDragTab] = useState<string | null>(null);
   const [accessOpen, setAccessOpen] = useState(false);
   const [accessDirty, setAccessDirty] = useState(false);
-  const [importing, setImporting] = useState(false);
-  const [importMsg, setImportMsg] = useState<string | null>(null);
 
   const has = (p: string) => me.perms.includes(p);
   const canCustomize = has("board.customize");
@@ -174,35 +170,6 @@ export default function Workspace({
     setDragTab(null);
   }
 
-  async function importDemo() {
-    setImporting(true);
-    setImportMsg("Importing demo launches into Jira…");
-    let total = 0;
-    try {
-      // One launch per request so each stays well under the function timeout.
-      for (const collection of LAUNCH_DEMO_COLLECTIONS) {
-        const res = await fetch("/api/import", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ collection }),
-        });
-        const d = await res.json().catch(() => null);
-        if (!res.ok) {
-          setImportMsg(`Import failed: ${d?.error ?? res.status}`);
-          setImporting(false);
-          return;
-        }
-        const r = d?.results?.[collection];
-        total += (r?.created ?? 0) + (r?.updated ?? 0);
-      }
-      setImportMsg(`✅ Synced ${total} deliverables to Jira (MW). Reloading…`);
-      setTimeout(() => window.location.reload(), 1200);
-    } catch (e) {
-      setImportMsg("Import failed — see console.");
-      setImporting(false);
-    }
-  }
-
   function switchUser(userId: string) {
     document.cookie = `devUser=${userId};path=/;max-age=31536000`;
     window.location.reload();
@@ -234,7 +201,7 @@ export default function Workspace({
           <span className="who-label">{devLogin ? "Viewing as" : "Signed in as"}</span>
           {devLogin ? (
             <select className="who-select" value={me.id} onChange={(e) => switchUser(e.target.value)}>
-              {[...DEMO_USERS, ...(config?.users ?? [])].map((u) => (
+              {(config?.users ?? []).map((u) => (
                 <option key={u.id} value={u.id}>
                   {u.name}
                 </option>
@@ -250,27 +217,12 @@ export default function Workspace({
             </a>
           )}
           {canManageRoles && (
-            <>
-              <button
-                className="btn btn-ghost who-manage"
-                onClick={importDemo}
-                disabled={importing}
-                title="Create the demo launch deliverables as issues in Jira (MW)"
-              >
-                {importing ? "Importing…" : "⬇ Import demo → Jira"}
-              </button>
-              <button className="btn btn-ghost who-manage" onClick={() => setAccessOpen(true)}>
-                Manage access
-              </button>
-            </>
+            <button className="btn btn-ghost who-manage" onClick={() => setAccessOpen(true)}>
+              Manage access
+            </button>
           )}
         </div>
       </div>
-      {importMsg && (
-        <div className="toast" role="status" onClick={() => setImportMsg(null)}>
-          {importMsg}
-        </div>
-      )}
       <p className="app-sub">
         A friendly, Monday/Asana-style workspace on top of Jira. Edits save automatically.
         {devLogin && (

@@ -9,9 +9,6 @@ export type CollectionId =
   | "content" // the content-pipeline tab (the team's primary working surface)
   | "launch" // product/feature launch tracker (a second template on the same engine)
   | "tickets" // cross-team tickets opened by workflow automations
-  | "launchSearch" // demo launch board — Cribl Search
-  | "launchFall" // demo launch board — Fall '25 / CriblCon
-  | "launchFedramp" // demo launch board — FedRAMP / Cribl.Cloud Government
   | "okr" // objectives & key results
   | "quarterPlan" // quarter x owner planning grid
   | "topicOwners"; // topic -> primary/secondary PMM ownership
