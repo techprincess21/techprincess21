@@ -129,6 +129,24 @@ Boards, rows, roles, and access all save through a small storage layer
 Without either (e.g. a serverless deploy with no KV), the app still runs but data
 is in-memory only and resets on cold start.
 
+## Notifications (Slack)
+
+People get a Slack DM when they're assigned an item, or when the status changes
+on an item they own (Jira-Slackbot style). Each person controls what they receive
+via the 🔔 panel. Owners are matched to Slack accounts by email, so owner fields
+should be real app users.
+
+Dormant until an IT-provisioned Slack app is connected:
+
+```bash
+SLACK_BOT_TOKEN=xoxb-...   # bot token with chat:write + users:read.email
+```
+
+Okta app spec for IT: a Slack app with bot scopes **`chat:write`** and
+**`users:read.email`**, installed to the workspace; share the **bot token**
+(`xoxb-…`) to set as `SLACK_BOT_TOKEN`. Until then, preferences still save and the
+app works normally — no DMs are sent.
+
 ## Run it
 
 ```bash

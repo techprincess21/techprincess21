@@ -16,6 +16,7 @@ import {
   setColumnOptions,
   setColumnOrder,
   setColor,
+  setNotifyPref,
   setPeople,
   setPlaybookOverride,
   setRole,
@@ -75,6 +76,13 @@ export async function PUT(req: Request) {
     const me = await getIdentity();
     const cfg = await getConfig();
     if (!boardId || !canManageBoardAccess(me, boardId, cfg.boards)) return forbidden();
+  }
+
+  // Notification prefs: you may set your own; admins may set anyone's.
+  if (body?.action === "notifyPref") {
+    const me = await getIdentity();
+    const target = typeof body?.email === "string" ? body.email.toLowerCase() : "";
+    if (!target || (target !== me.id.toLowerCase() && !(await can("roles.manage")))) return forbidden();
   }
 
   // Creating or duplicating a board requires the project.create permission.
@@ -202,6 +210,9 @@ export async function PUT(req: Request) {
   }
   if (body?.action === "boardDelete" && typeof body.boardId === "string") {
     return NextResponse.json({ config: await deleteCustomBoard(body.boardId) });
+  }
+  if (body?.action === "notifyPref" && typeof body.email === "string" && (body.key === "assigned" || body.key === "status") && typeof body.value === "boolean") {
+    return NextResponse.json({ config: await setNotifyPref(body.email, body.key, body.value) });
   }
   if (body?.action === "boardDuplicate" && typeof body.sourceBoardId === "string" && typeof body.label === "string" && body.label.trim()) {
     const me = await getIdentity();

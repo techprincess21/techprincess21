@@ -14,6 +14,7 @@ import EditableGrid from "./EditableGrid";
 import AccessModal from "./AccessModal";
 import BoardAccessModal from "./BoardAccessModal";
 import NewBoardModal from "./NewBoardModal";
+import NotificationsModal from "./NotificationsModal";
 import AutomationsBuilder from "./AutomationsBuilder";
 
 interface Me {
@@ -29,18 +30,21 @@ export default function Workspace({
   me,
   devLogin = false,
   oktaAuth = false,
+  slackConfigured = false,
 }: {
   views: ViewDef[];
   adapter: string;
   me: Me;
   devLogin?: boolean;
   oktaAuth?: boolean;
+  slackConfigured?: boolean;
 }) {
   const [config, setConfig] = useState<AppConfig | null>(null);
   const [dragTab, setDragTab] = useState<string | null>(null);
   const [accessOpen, setAccessOpen] = useState(false);
   const [boardAccessOpen, setBoardAccessOpen] = useState(false);
   const [newBoardOpen, setNewBoardOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
   const [accessDirty, setAccessDirty] = useState(false);
 
   const has = (p: string) => me.perms.includes(p);
@@ -212,6 +216,9 @@ export default function Workspace({
   function applyBoardClone(boardId: string, fromBoardId: string) {
     putConfig({ action: "boardClone", boardId, fromBoardId });
   }
+  function setNotifyPref(key: "assigned" | "status", value: boolean) {
+    putConfig({ action: "notifyPref", email: me.id, key, value });
+  }
   async function createBoard(opts: {
     label: string;
     visibility: "public" | "private";
@@ -306,7 +313,13 @@ export default function Workspace({
   const activeOptions = (active && config?.options[active.id]) || {};
   const activeColumns = (active && config?.columnOrder[active.id]) || [];
   const activeColors = (active && config?.colors[active.id]) || {};
-  const people = config?.people ?? [];
+  // Owner autocomplete = free-form names plus real app users (so owners can be
+  // tied to identities we can notify).
+  const people = useMemo(() => {
+    const names = new Set(config?.people ?? []);
+    for (const u of config?.users ?? []) names.add(u.name);
+    return [...names];
+  }, [config?.people, config?.users]);
 
   return (
     <div className="app">
@@ -342,6 +355,9 @@ export default function Workspace({
               {boardVisibility(active.id, config.boards) === "private" ? "🔒" : "🌐"} Board access
             </button>
           )}
+          <button className="btn btn-ghost who-manage" onClick={() => setNotifOpen(true)} title="Notification preferences">
+            🔔
+          </button>
           {canManageRoles && (
             <button className="btn btn-ghost who-manage" onClick={() => setAccessOpen(true)}>
               Manage access
@@ -438,6 +454,16 @@ export default function Workspace({
           onClone={(fromId) => applyBoardClone(active.id, fromId)}
           onDelete={() => deleteBoard(active.id)}
           onClose={() => setBoardAccessOpen(false)}
+        />
+      )}
+
+      {notifOpen && (
+        <NotificationsModal
+          prefs={config?.notifyPrefs?.[me.id.toLowerCase()] ?? {}}
+          slackConfigured={slackConfigured}
+          signedInEmail={oktaAuth ? me.id : null}
+          onSetPref={setNotifyPref}
+          onClose={() => setNotifOpen(false)}
         />
       )}
 

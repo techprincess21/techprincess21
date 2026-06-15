@@ -5,6 +5,7 @@ import type { BoardAccess, BoardsConfig } from "@/lib/board-access";
 import { BOARD_TEMPLATE_BY_KEY } from "@/lib/board-templates";
 import type { ColumnDef, ViewDef } from "@/lib/types";
 import { loadJson, saveJson } from "@/lib/store";
+import type { NotifyPrefs } from "@/lib/notify";
 
 // Per-board customization store.
 //
@@ -36,6 +37,8 @@ export interface AppConfig {
   boards: BoardsConfig;
   // User-created boards (their own ViewDef; collection === the board id).
   customBoards: ViewDef[];
+  // Per-user notification preferences (keyed by email), e.g. assigned/status.
+  notifyPrefs: NotifyPrefs;
 }
 
 // Owner autocomplete starts empty — names accrue as the team uses the app.
@@ -65,6 +68,7 @@ function defaultConfig(): AppConfig {
     automations: [],
     boards: {},
     customBoards: [],
+    notifyPrefs: {},
   };
 }
 
@@ -87,11 +91,20 @@ export async function getConfig(): Promise<AppConfig> {
     automations: saved.automations ?? [],
     boards: saved.boards ?? {},
     customBoards: saved.customBoards ?? [],
+    notifyPrefs: saved.notifyPrefs ?? {},
   };
 }
 
 async function persist(cfg: AppConfig): Promise<void> {
   await saveJson("config", cfg);
+}
+
+export async function setNotifyPref(email: string, key: "assigned" | "status", value: boolean) {
+  const cfg = await getConfig();
+  const e = email.toLowerCase();
+  cfg.notifyPrefs[e] = { ...(cfg.notifyPrefs[e] ?? {}), [key]: value };
+  await persist(cfg);
+  return cfg;
 }
 
 export async function setColumnOptions(viewId: string, columnKey: string, opts: string[]) {

@@ -2,6 +2,7 @@ import Workspace from "./Workspace";
 import SignIn from "./SignIn";
 import { VIEWS } from "@/lib/views";
 import { getIdentity, devLoginEnabled } from "@/lib/auth";
+import { notifyConfigured } from "@/lib/notify";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,7 @@ export default async function Page() {
       me={{ id: me.id, name: me.name, role: me.role, perms: me.perms }}
       devLogin={devLoginEnabled() && !me.viaOkta}
       oktaAuth={me.viaOkta}
+      slackConfigured={notifyConfigured()}
     />
   );
 }
