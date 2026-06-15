@@ -15,6 +15,16 @@ export function devLoginEnabled(): boolean {
   return v === "true" || v === "1";
 }
 
+// Emails that should always resolve to Org Admin, regardless of Okta groups.
+// Solves the bootstrap problem: someone has to be admin to assign roles before
+// any group->role mapping exists. Comma-separated, case-insensitive.
+function adminEmails(): string[] {
+  return (process.env.ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+}
+
 export interface Identity {
   id: string;
   name: string;
@@ -22,6 +32,7 @@ export interface Identity {
   perms: string[];
   viaOkta: boolean;
   signedIn: boolean;
+  groups?: string[];
 }
 
 export async function getIdentity(): Promise<Identity> {
@@ -33,8 +44,9 @@ export async function getIdentity(): Promise<Identity> {
     const email = session?.user?.email;
     if (email) {
       const groups = ((session as { groups?: string[] } | null)?.groups ?? []) as string[];
-      const role = groupsToRole(groups);
-      return { id: email, name: session?.user?.name ?? email, role, perms: permsFor(role), viaOkta: true, signedIn: true };
+      // ADMIN_EMAILS overrides group mapping (bootstrap); else map from groups.
+      const role = adminEmails().includes(email.toLowerCase()) ? "Org Admin" : groupsToRole(groups);
+      return { id: email, name: session?.user?.name ?? email, role, perms: permsFor(role), viaOkta: true, signedIn: true, groups };
     }
     // Okta on, nobody signed in yet → read-only guest (page shows sign-in).
     return { id: "guest", name: "Guest", role: "Viewer", perms: permsFor("Viewer"), viaOkta: true, signedIn: false };

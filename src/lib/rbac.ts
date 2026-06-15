@@ -51,17 +51,44 @@ export const DEFAULT_ROLES: { [role: string]: string[] } = {
 
 export const ROLE_LIST = ["Viewer", "Contributor", "Editor", "Project Admin", "Org Admin"];
 
-// Map a user's Okta groups to a role. Matches group names loosely against role
-// names (e.g. "Goatsana-Org-Admins" -> "Org Admin"), picking the highest
-// privilege the user qualifies for; defaults to Viewer.
-export function groupsToRole(groups: string[]): string {
+// Parse the optional explicit Okta-group -> role map from the environment.
+// Format: a JSON object of { "Okta Group Name": "Role" }, e.g.
+//   OKTA_GROUP_ROLE_MAP='{"Marketing Leadership":"Org Admin","Marketing":"Editor"}'
+// Roles must be one of ROLE_LIST. Invalid JSON is ignored (falls back to fuzzy).
+function parseGroupRoleMap(): Record<string, string> {
+  try {
+    const raw = process.env.OKTA_GROUP_ROLE_MAP;
+    if (!raw) return {};
+    const obj = JSON.parse(raw);
+    return obj && typeof obj === "object" ? (obj as Record<string, string>) : {};
+  } catch {
+    return {};
+  }
+}
+
+// Map a user's Okta groups to a role, picking the highest privilege they qualify
+// for; defaults to Viewer. First honors the explicit OKTA_GROUP_ROLE_MAP (exact,
+// case-insensitive group-name match), then falls back to a loose match of group
+// names against role names (e.g. "Goatsana-Org-Admins" -> "Org Admin").
+export function groupsToRole(
+  groups: string[],
+  explicitMap: Record<string, string> = parseGroupRoleMap()
+): string {
   const norm = (s: string) => s.toLowerCase().replace(/[^a-z]/g, "");
   const g = (groups ?? []).map(norm);
-  for (const role of [...ROLE_LIST].reverse()) {
-    const r = norm(role);
-    if (g.some((x) => x.includes(r))) return role;
+  const gset = new Set(g);
+  let best = -1; // index into ROLE_LIST; higher = more privilege
+
+  // Explicit map wins where it applies.
+  for (const [grp, role] of Object.entries(explicitMap)) {
+    if (gset.has(norm(grp))) best = Math.max(best, ROLE_LIST.indexOf(role));
   }
-  return "Viewer";
+  // Loose fallback: a group name containing a role name.
+  ROLE_LIST.forEach((role, i) => {
+    if (g.some((x) => x.includes(norm(role)))) best = Math.max(best, i);
+  });
+
+  return best >= 0 ? ROLE_LIST[best] : "Viewer";
 }
 
 export interface DemoUser {
