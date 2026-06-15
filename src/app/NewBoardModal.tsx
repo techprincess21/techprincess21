@@ -18,23 +18,34 @@ export interface CreateBoardOpts {
 export default function NewBoardModal({
   cloneSources,
   onCreate,
+  onImport,
   onClose,
 }: {
   cloneSources: { id: string; label: string }[];
   onCreate: (opts: CreateBoardOpts) => void;
+  onImport: (opts: { label: string; visibility: "public" | "private"; file?: File; gsheetUrl?: string }) => void;
   onClose: () => void;
 }) {
   const [label, setLabel] = useState("");
-  const [mode, setMode] = useState<"template" | "clone">("template");
+  const [mode, setMode] = useState<"template" | "clone" | "import">("template");
   const [templateKey, setTemplateKey] = useState(BOARD_TEMPLATES[0].key);
   const [sourceBoardId, setSourceBoardId] = useState(cloneSources[0]?.id ?? "");
   const [copyRows, setCopyRows] = useState(false);
   const [copyMembers, setCopyMembers] = useState(true);
   const [visibility, setVisibility] = useState<"public" | "private">("public");
+  const [file, setFile] = useState<File | null>(null);
+  const [gsheetUrl, setGsheetUrl] = useState("");
 
   const canClone = cloneSources.length > 0;
+  const importReady = Boolean(file || gsheetUrl.trim());
+  const canSubmit = mode === "import" ? importReady : Boolean(label.trim());
 
   function create() {
+    if (mode === "import") {
+      if (!importReady) return;
+      onImport({ label: label.trim(), visibility, file: file ?? undefined, gsheetUrl: gsheetUrl.trim() || undefined });
+      return;
+    }
     const l = label.trim();
     if (!l) return;
     if (mode === "clone") {
@@ -66,7 +77,7 @@ export default function NewBoardModal({
               className="nb-input"
               value={label}
               autoFocus
-              placeholder="e.g. Q3 Webinars, M&A Project…"
+              placeholder={mode === "import" ? "Optional — defaults to the file / sheet name" : "e.g. Q3 Webinars, M&A Project…"}
               onChange={(e) => setLabel(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && create()}
             />
@@ -89,10 +100,14 @@ export default function NewBoardModal({
                 />
                 Copy an existing board{!canClone && " (none yet)"}
               </label>
+              <label className={mode === "import" ? "active" : ""}>
+                <input type="radio" name="mode" checked={mode === "import"} onChange={() => setMode("import")} />
+                Import a spreadsheet (CSV, Excel, or Google Sheets)
+              </label>
             </div>
           </div>
 
-          {mode === "template" ? (
+          {mode === "template" && (
             <div className="ba-section">
               <h3>Template</h3>
               <div className="nb-templates">
@@ -110,7 +125,9 @@ export default function NewBoardModal({
                 ))}
               </div>
             </div>
-          ) : (
+          )}
+
+          {mode === "clone" && (
             <div className="ba-section">
               <h3>Copy from</h3>
               <select className="nb-input" value={sourceBoardId} onChange={(e) => setSourceBoardId(e.target.value)}>
@@ -128,6 +145,33 @@ export default function NewBoardModal({
                 <input type="checkbox" checked={copyMembers} onChange={(e) => setCopyMembers(e.target.checked)} />
                 Copy the member &amp; access list
               </label>
+            </div>
+          )}
+
+          {mode === "import" && (
+            <div className="ba-section">
+              <h3>Spreadsheet</h3>
+              <input
+                type="file"
+                accept=".csv,.xlsx,.xls"
+                onChange={(e) => {
+                  const f = e.target.files?.[0] ?? null;
+                  setFile(f);
+                  if (f && !label.trim()) setLabel(f.name.replace(/\.[^.]+$/, ""));
+                }}
+              />
+              {file && <p className="cz-note">Selected: {file.name}</p>}
+              <p className="cz-note" style={{ textAlign: "center", margin: "8px 0" }}>— or —</p>
+              <input
+                className="nb-input"
+                placeholder="Paste a Google Sheets link (shared “Anyone with the link”)"
+                value={gsheetUrl}
+                onChange={(e) => setGsheetUrl(e.target.value)}
+              />
+              <p className="cz-note">
+                The first row becomes your columns; each following row becomes an item. You can change
+                column types and add dropdown choices afterward.
+              </p>
             </div>
           )}
 
@@ -158,8 +202,8 @@ export default function NewBoardModal({
 
         <div className="modal-foot">
           <span className="modal-foot-note" />
-          <button className="btn btn-primary" disabled={!label.trim()} onClick={create}>
-            Create board
+          <button className="btn btn-primary" disabled={!canSubmit} onClick={create}>
+            {mode === "import" ? "Import board" : "Create board"}
           </button>
         </div>
       </div>

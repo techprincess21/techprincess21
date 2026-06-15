@@ -3,7 +3,7 @@ import { DEFAULT_ROLES, DEFAULT_USER_ROLES } from "@/lib/rbac";
 import type { ConfigAutomation } from "@/lib/playbooks";
 import type { BoardAccess, BoardsConfig } from "@/lib/board-access";
 import { BOARD_TEMPLATE_BY_KEY } from "@/lib/board-templates";
-import type { ViewDef } from "@/lib/types";
+import type { ColumnDef, ViewDef } from "@/lib/types";
 import { loadJson, saveJson } from "@/lib/store";
 
 // Per-board customization store.
@@ -315,6 +315,28 @@ export async function addClonedBoard(opts: {
   cfg.tabOrder = [...cfg.tabOrder, id];
   await persist(cfg);
   return { cfg, id, sourceCollection: source.collection };
+}
+
+// Create a board from an imported spreadsheet: columns come from the header row.
+// Rows are added separately by the caller (via the data adapter).
+export async function addImportedBoard(opts: {
+  label: string;
+  columns: ColumnDef[];
+  owner: string;
+  visibility: "public" | "private";
+}): Promise<{ cfg: AppConfig; id: string }> {
+  const cfg = await getConfig();
+  const id = `b_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+  cfg.customBoards = [
+    ...cfg.customBoards,
+    { id, label: opts.label, collection: id, columns: opts.columns },
+  ];
+  cfg.options[id] = {};
+  cfg.columnOrder[id] = opts.columns.map((c) => c.key);
+  cfg.boards[id] = { owner: opts.owner, visibility: opts.visibility, members: {}, excluded: [] };
+  cfg.tabOrder = [...cfg.tabOrder, id];
+  await persist(cfg);
+  return { cfg, id };
 }
 
 export async function deleteCustomBoard(id: string) {

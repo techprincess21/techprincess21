@@ -245,6 +245,40 @@ export default function Workspace({
     setActiveId(firstVisible);
     putConfig({ action: "boardDelete", boardId });
   }
+  async function importBoard(opts: {
+    label: string;
+    visibility: "public" | "private";
+    file?: File;
+    gsheetUrl?: string;
+  }) {
+    let body: Record<string, unknown>;
+    if (opts.file) {
+      const dataBase64 = await new Promise<string>((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(String(r.result).split(",")[1] ?? "");
+        r.onerror = () => reject(r.error);
+        r.readAsDataURL(opts.file as File);
+      });
+      body = { kind: "file", filename: opts.file.name, dataBase64, label: opts.label, visibility: opts.visibility };
+    } else if (opts.gsheetUrl) {
+      body = { kind: "gsheet", url: opts.gsheetUrl, label: opts.label, visibility: opts.visibility };
+    } else {
+      return;
+    }
+    const res = await fetch("/api/import", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const d = await res.json().catch(() => null);
+    if (d?.error) {
+      alert(d.error);
+      return;
+    }
+    if (d?.config) setConfig(d.config);
+    if (d?.boardId) selectTab(d.boardId);
+    setNewBoardOpen(false);
+  }
 
   function dropTab(targetId: string) {
     if (!canCustomize || !dragTab || dragTab === targetId) return setDragTab(null);
@@ -413,6 +447,7 @@ export default function Workspace({
             .filter((v) => dataBoardIds.has(v.id))
             .map((v) => ({ id: v.id, label: v.label }))}
           onCreate={createBoard}
+          onImport={importBoard}
           onClose={() => setNewBoardOpen(false)}
         />
       )}
