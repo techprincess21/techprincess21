@@ -136,14 +136,17 @@ works today for roles; we extend it to per-board.)
 1. **Team base role:** should Marketing/CX default to **Project Admin** (can
    create boards) or **Editor** (can edit, but not create new boards)? You said
    "capable of creating a new project," which points to **Project Admin** — confirm?
-2. **New-board default:** when someone creates a board, should it start **🔒
-   Private** (GitHub-style, safest) or **🌐 Public**? My rec: **Private by default**,
-   creator flips it public when ready.
-3. **Who can make a board public:** just admins, or also the board's owner? My
-   rec: **the owner can**, for their own board.
-4. **CX team Okta group:** what's the CX group called in Okta? (Have one CX person
-   hit `/api/whoami` and send me the `groups` list, like you did — so I map them
-   correctly.)
-5. **Per-board roles:** reuse the same five roles for board membership, or a
-   simpler set (Viewer / Editor / Admin) at the board level? My rec: **reuse the
-   five** for consistency.
+2. **New-board default:** ✅ **DECIDED — boards start 🌐 Public** (culture of
+   transparency; flip the sensitive ones to Private).
+3. **Who can make a board public/private:** just admins, or also the board's
+   owner? My rec: **the owner can**, for their own board.
+4. **CX team Okta group:** ⏸️ **HELD** — likely rolled into "Marketing Team";
+   Abby to confirm. For now, ensure **`Employees` / `All` can access** and Abby
+   overrides individuals locally as needed.
+5. **Per-board roles:** ✅ **DECIDED — reuse the operational four** (Viewer /
+   Contributor / Editor / Project Admin) when adding someone to a board; their
+   board role can exceed their base role.
+
+### Terminology
+- **"Make Public / Make Private"** = the toggle that flips a board's visibility.
+  Nothing leaves the app; it only changes who in the company can see the board.
