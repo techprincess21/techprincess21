@@ -283,6 +283,57 @@ export async function addCustomBoard(opts: {
   return { cfg, id };
 }
 
+// Duplicate a whole board (its structure + per-board config, optionally its
+// members) into a new custom board. Row copying is handled by the caller (it
+// needs the data adapter). Returns the new board id and the source collection.
+export async function addClonedBoard(opts: {
+  sourceBoardId: string;
+  label: string;
+  owner: string;
+  visibility: "public" | "private";
+  copyMembers: boolean;
+}): Promise<{ cfg: AppConfig; id: string; sourceCollection: string } | null> {
+  const cfg = await getConfig();
+  const source =
+    VIEWS.find((v) => v.id === opts.sourceBoardId) ??
+    cfg.customBoards.find((b) => b.id === opts.sourceBoardId);
+  if (!source) return null;
+
+  const id = `b_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+  cfg.customBoards = [
+    ...cfg.customBoards,
+    {
+      id,
+      label: opts.label,
+      collection: id,
+      columns: source.columns,
+      groupBy: source.groupBy,
+      defaults: source.defaults,
+      summary: source.summary,
+    },
+  ];
+  // Copy the source's per-board config layers.
+  cfg.options[id] = structuredClone(
+    cfg.options[opts.sourceBoardId] ??
+      Object.fromEntries(
+        source.columns.filter((c) => c.type === "select").map((c) => [c.key, [...(c.options ?? [])]])
+      )
+  );
+  cfg.columnOrder[id] = [...(cfg.columnOrder[opts.sourceBoardId] ?? source.columns.map((c) => c.key))];
+  if (cfg.colors[opts.sourceBoardId]) cfg.colors[id] = structuredClone(cfg.colors[opts.sourceBoardId]);
+
+  const srcAccess = cfg.boards[opts.sourceBoardId];
+  cfg.boards[id] = {
+    owner: opts.owner,
+    visibility: opts.visibility,
+    members: opts.copyMembers && srcAccess ? { ...srcAccess.members } : {},
+    excluded: opts.copyMembers && srcAccess ? [...srcAccess.excluded] : [],
+  };
+  cfg.tabOrder = [...cfg.tabOrder, id];
+  await persist();
+  return { cfg, id, sourceCollection: source.collection };
+}
+
 export async function deleteCustomBoard(id: string) {
   const cfg = await getConfig();
   cfg.customBoards = cfg.customBoards.filter((b) => b.id !== id);

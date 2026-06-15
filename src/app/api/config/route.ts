@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   addAutomation,
+  addClonedBoard,
   addCustomBoard,
   addUser,
   cloneBoardMembers,
@@ -23,6 +24,7 @@ import {
 } from "@/lib/config-store";
 import { can, getIdentity } from "@/lib/auth";
 import { canManageBoardAccess } from "@/lib/board-access";
+import { getAdapter } from "@/lib/adapters";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -75,8 +77,10 @@ export async function PUT(req: Request) {
     if (!boardId || !canManageBoardAccess(me, boardId, cfg.boards)) return forbidden();
   }
 
-  // Creating a board requires the project.create permission.
-  if (body?.action === "boardCreate" && !(await can("project.create"))) return forbidden();
+  // Creating or duplicating a board requires the project.create permission.
+  if ((body?.action === "boardCreate" || body?.action === "boardDuplicate") && !(await can("project.create"))) {
+    return forbidden();
+  }
 
   // Deleting a board: requires the Delete-boards permission, and only custom
   // boards, and only by someone who can manage that specific board.
@@ -198,6 +202,24 @@ export async function PUT(req: Request) {
   }
   if (body?.action === "boardDelete" && typeof body.boardId === "string") {
     return NextResponse.json({ config: await deleteCustomBoard(body.boardId) });
+  }
+  if (body?.action === "boardDuplicate" && typeof body.sourceBoardId === "string" && typeof body.label === "string" && body.label.trim()) {
+    const me = await getIdentity();
+    const visibility = body.visibility === "private" ? "private" : "public";
+    const result = await addClonedBoard({
+      sourceBoardId: body.sourceBoardId,
+      label: body.label.trim(),
+      owner: me.id,
+      visibility,
+      copyMembers: Boolean(body.copyMembers),
+    });
+    if (!result) return NextResponse.json({ error: "Unknown source board" }, { status: 400 });
+    if (body.copyRows) {
+      const adapter = getAdapter();
+      const rows = await adapter.list(result.sourceCollection);
+      for (const r of rows) await adapter.create(result.id, r.fields);
+    }
+    return NextResponse.json({ config: result.cfg, boardId: result.id });
   }
   return NextResponse.json({ error: "Invalid config update" }, { status: 400 });
 }

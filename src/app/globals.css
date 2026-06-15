@@ -391,6 +391,16 @@ body {
   font-size: 12px;
   color: var(--muted);
 }
+.nb-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 13px;
+}
+.nb-disabled {
+  opacity: 0.5;
+}
 .btn-danger {
   background: #e2445c;
   color: #fff;

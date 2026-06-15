@@ -10,6 +10,7 @@ export const VIEWS: ViewDef[] = [
   {
     id: "content",
     label: "Content Pipeline",
+    hidden: true,
     collection: "content",
     description:
       "Every content piece, grouped by workflow stage. Edits here are the ones that will write back to Jira.",
@@ -39,6 +40,7 @@ export const VIEWS: ViewDef[] = [
   {
     id: "launch",
     label: "Launch Plan",
+    hidden: true,
     collection: "launch",
     description:
       "The GTM launch workback tracker — deliverables grouped by phase, with launch-moment tags, the workback date schedule, and a Responsible owner. Same engine as the Content board, just a different column config.",
@@ -95,6 +97,7 @@ export const VIEWS: ViewDef[] = [
   {
     id: "okr",
     label: "OKRs",
+    hidden: true,
     collection: "okr",
     description: "Objectives & key results with progress against target.",
     groupBy: "objective",
@@ -114,6 +117,7 @@ export const VIEWS: ViewDef[] = [
   {
     id: "quarterPlan",
     label: "Quarterly Plan",
+    hidden: true,
     collection: "quarterPlan",
     description: "What each owner is committed to per quarter.",
     groupBy: "quarter",
@@ -126,6 +130,7 @@ export const VIEWS: ViewDef[] = [
   {
     id: "topicOwners",
     label: "Topic Owners",
+    hidden: true,
     collection: "topicOwners",
     description: "Primary and secondary PMM ownership by content topic.",
     defaults: {},

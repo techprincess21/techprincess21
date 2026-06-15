@@ -138,8 +138,14 @@ works today for roles; we extend it to per-board.)
    Content pipeline), choose Public/Private. The creator becomes the owner.
    Custom boards are stored in config (their own ViewDef; collection = board id)
    and can be deleted by the owner/admins from the Board access panel.
-4. ✅ **Clone & polish (BUILT)** — clone another board's members onto a board
-   (in the Board access panel); per-board delete.
+4. ✅ **Clone & polish (BUILT)** — **duplicate a whole board** ("+ New board →
+   Copy an existing board": copies columns, and optionally rows and the
+   member/access list); clone just the members onto an existing board (Board
+   access panel); delete a board (gated by the **Delete boards** permission).
+
+**Note:** the five built-in boards are now **hidden** — they live only as the
+three starting templates in "+ New board". The workspace starts with just the
+Automations tab; everything else is boards the team creates.
 
 ---
 

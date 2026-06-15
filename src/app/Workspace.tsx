@@ -212,11 +212,28 @@ export default function Workspace({
   function applyBoardClone(boardId: string, fromBoardId: string) {
     putConfig({ action: "boardClone", boardId, fromBoardId });
   }
-  async function createBoard(label: string, templateKey: string, visibility: "public" | "private") {
+  async function createBoard(opts: {
+    label: string;
+    visibility: "public" | "private";
+    templateKey?: string;
+    sourceBoardId?: string;
+    copyRows?: boolean;
+    copyMembers?: boolean;
+  }) {
+    const body = opts.sourceBoardId
+      ? {
+          action: "boardDuplicate",
+          sourceBoardId: opts.sourceBoardId,
+          label: opts.label,
+          visibility: opts.visibility,
+          copyRows: opts.copyRows,
+          copyMembers: opts.copyMembers,
+        }
+      : { action: "boardCreate", label: opts.label, templateKey: opts.templateKey, visibility: opts.visibility };
     const res = await fetch("/api/config", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "boardCreate", label, templateKey, visibility }),
+      body: JSON.stringify(body),
     });
     const d = await res.json().catch(() => null);
     if (d?.config) setConfig(d.config);
@@ -391,7 +408,13 @@ export default function Workspace({
       )}
 
       {newBoardOpen && (
-        <NewBoardModal onCreate={createBoard} onClose={() => setNewBoardOpen(false)} />
+        <NewBoardModal
+          cloneSources={visibleViews
+            .filter((v) => dataBoardIds.has(v.id))
+            .map((v) => ({ id: v.id, label: v.label }))}
+          onCreate={createBoard}
+          onClose={() => setNewBoardOpen(false)}
+        />
       )}
     </div>
   );
