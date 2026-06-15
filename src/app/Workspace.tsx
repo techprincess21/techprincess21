@@ -5,7 +5,6 @@ import type { ViewDef } from "@/lib/types";
 import type { AppConfig } from "@/lib/config-store";
 import { listPlaybooks } from "@/lib/playbooks";
 import {
-  DATA_BOARD_IDS,
   canManageBoardAccess,
   canSeeBoard,
   effectiveBoardPerms,
@@ -14,6 +13,7 @@ import {
 import EditableGrid from "./EditableGrid";
 import AccessModal from "./AccessModal";
 import BoardAccessModal from "./BoardAccessModal";
+import NewBoardModal from "./NewBoardModal";
 import AutomationsBuilder from "./AutomationsBuilder";
 
 interface Me {
@@ -40,6 +40,7 @@ export default function Workspace({
   const [dragTab, setDragTab] = useState<string | null>(null);
   const [accessOpen, setAccessOpen] = useState(false);
   const [boardAccessOpen, setBoardAccessOpen] = useState(false);
+  const [newBoardOpen, setNewBoardOpen] = useState(false);
   const [accessDirty, setAccessDirty] = useState(false);
 
   const has = (p: string) => me.perms.includes(p);
@@ -53,9 +54,22 @@ export default function Workspace({
       .catch(() => setConfig(null));
   }, []);
 
+  // Code-defined boards plus the user-created ones (from config).
+  const allViews = useMemo(
+    () => [...views, ...(config?.customBoards ?? [])],
+    [views, config?.customBoards]
+  );
+
+  // The boards that participate in public/private access (everything that isn't
+  // the Automations builder).
+  const dataBoardIds = useMemo(
+    () => new Set(allViews.filter((v) => !v.builder).map((v) => v.id)),
+    [allViews]
+  );
+
   const orderedViews = useMemo(() => {
     const order = config?.tabOrder ?? [];
-    const byId = new Map(views.map((v) => [v.id, v]));
+    const byId = new Map(allViews.map((v) => [v.id, v]));
     const out: ViewDef[] = [];
     for (const id of order) {
       const v = byId.get(id);
@@ -66,17 +80,17 @@ export default function Workspace({
     }
     for (const v of byId.values()) out.push(v);
     return out.filter((v) => !v.hidden);
-  }, [views, config?.tabOrder]);
+  }, [allViews, config?.tabOrder]);
 
   // Hide private boards the current user can't see. (Server enforces this too;
   // this just keeps the tab bar honest.)
   const visibleViews = useMemo(() => {
     if (!config) return orderedViews;
     return orderedViews.filter((v) => {
-      if (v.builder || !DATA_BOARD_IDS.includes(v.id)) return true;
+      if (v.builder || !dataBoardIds.has(v.id)) return true;
       return canSeeBoard(me, v.id, config.boards);
     });
-  }, [orderedViews, config, me]);
+  }, [orderedViews, config, me, dataBoardIds]);
 
   const firstVisible = views.find((v) => !v.hidden)?.id ?? views[0]?.id;
   const [activeId, setActiveId] = useState(firstVisible);
@@ -84,9 +98,9 @@ export default function Workspace({
 
   // Effective permissions on the active board (base role + any per-board bump).
   const activePerms = useMemo(() => {
-    if (!active || !config || !DATA_BOARD_IDS.includes(active.id)) return me.perms;
+    if (!active || !config || !dataBoardIds.has(active.id)) return me.perms;
     return effectiveBoardPerms(me, active.id, config.boards, config.roles);
-  }, [active, config, me]);
+  }, [active, config, me, dataBoardIds]);
 
   // Restore the last-viewed board after a refresh (only if it's a visible tab).
   useEffect(() => {
@@ -198,6 +212,22 @@ export default function Workspace({
   function applyBoardClone(boardId: string, fromBoardId: string) {
     putConfig({ action: "boardClone", boardId, fromBoardId });
   }
+  async function createBoard(label: string, templateKey: string, visibility: "public" | "private") {
+    const res = await fetch("/api/config", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "boardCreate", label, templateKey, visibility }),
+    });
+    const d = await res.json().catch(() => null);
+    if (d?.config) setConfig(d.config);
+    if (d?.boardId) selectTab(d.boardId);
+    setNewBoardOpen(false);
+  }
+  function deleteBoard(boardId: string) {
+    setBoardAccessOpen(false);
+    setActiveId(firstVisible);
+    putConfig({ action: "boardDelete", boardId });
+  }
 
   function dropTab(targetId: string) {
     if (!canCustomize || !dragTab || dragTab === targetId) return setDragTab(null);
@@ -256,7 +286,7 @@ export default function Workspace({
               Sign out
             </a>
           )}
-          {config && active && DATA_BOARD_IDS.includes(active.id) && canManageBoardAccess(me, active.id, config.boards) && (
+          {config && active && dataBoardIds.has(active.id) && canManageBoardAccess(me, active.id, config.boards) && (
             <button className="btn btn-ghost who-manage" onClick={() => setBoardAccessOpen(true)}>
               {boardVisibility(active.id, config.boards) === "private" ? "🔒" : "🌐"} Board access
             </button>
@@ -287,12 +317,17 @@ export default function Workspace({
             onDrop={() => dropTab(v.id)}
             title={canCustomize ? "Drag to reorder tabs" : undefined}
           >
-            {config && DATA_BOARD_IDS.includes(v.id) && boardVisibility(v.id, config.boards) === "private" && (
+            {config && dataBoardIds.has(v.id) && boardVisibility(v.id, config.boards) === "private" && (
               <span className="tab-lock" title="Private board">🔒 </span>
             )}
             {v.label}
           </button>
         ))}
+        {has("project.create") && (
+          <button className="tab tab-new" onClick={() => setNewBoardOpen(true)} title="Create a new board">
+            + New board
+          </button>
+        )}
       </div>
 
       {active && active.builder ? (
@@ -336,21 +371,27 @@ export default function Workspace({
         />
       )}
 
-      {boardAccessOpen && config && active && DATA_BOARD_IDS.includes(active.id) && (
+      {boardAccessOpen && config && active && dataBoardIds.has(active.id) && (
         <BoardAccessModal
           boardId={active.id}
           boardLabel={active.label}
           access={config.boards[active.id]}
-          otherBoards={views
-            .filter((v) => DATA_BOARD_IDS.includes(v.id) && v.id !== active.id)
+          deletable={config.customBoards.some((b) => b.id === active.id)}
+          otherBoards={allViews
+            .filter((v) => dataBoardIds.has(v.id) && v.id !== active.id)
             .map((v) => ({ id: v.id, label: v.label }))}
           onSetVisibility={(vis) => applyBoardVisibility(active.id, vis)}
           onSetMember={(email, role) => applyBoardMember(active.id, email, role)}
           onRemoveMember={(email) => applyBoardMemberRemove(active.id, email)}
           onSetExclusion={(email, excluded) => applyBoardExclude(active.id, email, excluded)}
           onClone={(fromId) => applyBoardClone(active.id, fromId)}
+          onDelete={() => deleteBoard(active.id)}
           onClose={() => setBoardAccessOpen(false)}
         />
+      )}
+
+      {newBoardOpen && (
+        <NewBoardModal onCreate={createBoard} onClose={() => setNewBoardOpen(false)} />
       )}
     </div>
   );

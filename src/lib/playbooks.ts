@@ -1,4 +1,4 @@
-import type { CollectionId, Record } from "@/lib/types";
+import type { Record } from "@/lib/types";
 import type { DataAdapter } from "@/lib/adapters/types";
 
 // Workflow automation engine — playbooks.
@@ -169,7 +169,7 @@ const splitCsv = (v: unknown) =>
 // status (once). Returns the updated record plus any tickets opened.
 export async function runPlaybooks(
   adapter: DataAdapter,
-  collection: CollectionId,
+  collection: string,
   record: Record,
   overrides?: PlaybookOverrides,
   custom?: ConfigAutomation[]

@@ -1,6 +1,6 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import type { CollectionId, FieldValue, Record } from "@/lib/types";
+import type { FieldValue, Record } from "@/lib/types";
 import { SEED } from "@/lib/seed";
 import type { DataAdapter } from "./types";
 
@@ -14,7 +14,7 @@ import type { DataAdapter } from "./types";
 const DATA_DIR = process.env.DATA_DIR || path.join(process.cwd(), ".data");
 const DB_FILE = path.join(DATA_DIR, "db.json");
 
-type Db = { [K in CollectionId]: Record[] };
+type Db = { [collection: string]: Record[] };
 
 let cache: Db | null = null;
 
@@ -46,12 +46,12 @@ function newId(): string {
 }
 
 export class MockAdapter implements DataAdapter {
-  async list(collection: CollectionId): Promise<Record[]> {
+  async list(collection: string): Promise<Record[]> {
     const db = await load();
     return db[collection] ?? [];
   }
 
-  async create(collection: CollectionId, fields: { [key: string]: FieldValue }): Promise<Record> {
+  async create(collection: string, fields: { [key: string]: FieldValue }): Promise<Record> {
     const db = await load();
     const record: Record = { id: newId(), jiraKey: null, fields };
     db[collection] = [...(db[collection] ?? []), record];
@@ -60,7 +60,7 @@ export class MockAdapter implements DataAdapter {
   }
 
   async update(
-    collection: CollectionId,
+    collection: string,
     id: string,
     fields: { [key: string]: FieldValue }
   ): Promise<Record> {
@@ -73,13 +73,13 @@ export class MockAdapter implements DataAdapter {
     return list[idx];
   }
 
-  async remove(collection: CollectionId, id: string): Promise<void> {
+  async remove(collection: string, id: string): Promise<void> {
     const db = await load();
     db[collection] = (db[collection] ?? []).filter((r) => r.id !== id);
     await persist();
   }
 
-  async reorder(collection: CollectionId, ids: string[]): Promise<void> {
+  async reorder(collection: string, ids: string[]): Promise<void> {
     const db = await load();
     const list = db[collection] ?? [];
     const pos = new Map(ids.map((id, i) => [id, i]));

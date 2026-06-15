@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import {
   addAutomation,
+  addCustomBoard,
   addUser,
   cloneBoardMembers,
   deleteAutomation,
+  deleteCustomBoard,
   getConfig,
   removeBoardMember,
   removeUser,
@@ -71,6 +73,18 @@ export async function PUT(req: Request) {
     const me = await getIdentity();
     const cfg = await getConfig();
     if (!boardId || !canManageBoardAccess(me, boardId, cfg.boards)) return forbidden();
+  }
+
+  // Creating a board requires the project.create permission.
+  if (body?.action === "boardCreate" && !(await can("project.create"))) return forbidden();
+
+  // Deleting a board: only custom boards, and only by someone who can manage it.
+  if (body?.action === "boardDelete") {
+    const boardId = typeof body?.boardId === "string" ? body.boardId : "";
+    const me = await getIdentity();
+    const cfg = await getConfig();
+    const isCustom = cfg.customBoards.some((b) => b.id === boardId);
+    if (!boardId || !isCustom || !canManageBoardAccess(me, boardId, cfg.boards)) return forbidden();
   }
 
   // Org-Admin protection: a non-Org-Admin can't touch Org Admins or the
@@ -167,6 +181,20 @@ export async function PUT(req: Request) {
   }
   if (body?.action === "boardClone" && typeof body.boardId === "string" && typeof body.fromBoardId === "string") {
     return NextResponse.json({ config: await cloneBoardMembers(body.fromBoardId, body.boardId) });
+  }
+  if (body?.action === "boardCreate" && typeof body.label === "string" && body.label.trim() && typeof body.templateKey === "string") {
+    const me = await getIdentity();
+    const visibility = body.visibility === "private" ? "private" : "public";
+    const { cfg, id } = await addCustomBoard({
+      label: body.label.trim(),
+      templateKey: body.templateKey,
+      owner: me.id,
+      visibility,
+    });
+    return NextResponse.json({ config: cfg, boardId: id });
+  }
+  if (body?.action === "boardDelete" && typeof body.boardId === "string") {
+    return NextResponse.json({ config: await deleteCustomBoard(body.boardId) });
   }
   return NextResponse.json({ error: "Invalid config update" }, { status: 400 });
 }

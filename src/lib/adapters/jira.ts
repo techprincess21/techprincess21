@@ -1,4 +1,4 @@
-import type { CollectionId, FieldValue, Record } from "@/lib/types";
+import type { FieldValue, Record } from "@/lib/types";
 import type { DataAdapter } from "./types";
 
 // Jira Cloud adapter.
@@ -185,8 +185,10 @@ export class JiraAdapter implements DataAdapter {
     return usable.id;
   }
 
-  private title(collection: CollectionId, fields: { [key: string]: FieldValue }): string {
-    const key = TITLE_FIELD[collection];
+  private title(collection: string, fields: { [key: string]: FieldValue }): string {
+    // Built-in boards have a known title field; custom boards fall back to their
+    // first non-internal field.
+    const key = TITLE_FIELD[collection] ?? Object.keys(fields).find((k) => !HIDDEN.has(k));
     const raw = (key && fields[key] != null ? String(fields[key]) : "") || "(untitled)";
     return raw.slice(0, 240);
   }
@@ -202,7 +204,7 @@ export class JiraAdapter implements DataAdapter {
     }
   }
 
-  async list(collection: CollectionId): Promise<Record[]> {
+  async list(collection: string): Promise<Record[]> {
     const { projectKey } = readConfig();
     // Automation tickets may live in other teams' projects, so search by label
     // across all accessible projects. Everything else is scoped to MW.
@@ -216,7 +218,7 @@ export class JiraAdapter implements DataAdapter {
 
   private async createIn(
     targetProject: string,
-    collection: CollectionId,
+    collection: string,
     fields: { [key: string]: FieldValue }
   ): Promise<Record> {
     const issuetypeId = await this.getIssueTypeId(targetProject);
@@ -235,7 +237,7 @@ export class JiraAdapter implements DataAdapter {
     return { id: created.key, jiraKey: created.key, fields };
   }
 
-  async create(collection: CollectionId, fields: { [key: string]: FieldValue }): Promise<Record> {
+  async create(collection: string, fields: { [key: string]: FieldValue }): Promise<Record> {
     const { projectKey } = readConfig();
     // Automation tickets target a team's project (fields.project). Everything
     // else goes to MW. If a target project fails (permissions, issue types),
@@ -253,7 +255,7 @@ export class JiraAdapter implements DataAdapter {
   }
 
   async update(
-    collection: CollectionId,
+    collection: string,
     id: string,
     fields: { [key: string]: FieldValue }
   ): Promise<Record> {
@@ -271,11 +273,11 @@ export class JiraAdapter implements DataAdapter {
     return { id, jiraKey: id, fields: merged };
   }
 
-  async remove(_collection: CollectionId, id: string): Promise<void> {
+  async remove(_collection: string, id: string): Promise<void> {
     await this.api(`/rest/api/3/issue/${id}`, { method: "DELETE" });
   }
 
-  async reorder(_collection: CollectionId, _ids: string[]): Promise<void> {
+  async reorder(_collection: string, _ids: string[]): Promise<void> {
     // v1: row order isn't persisted to Jira (would use the Agile rank API).
   }
 }

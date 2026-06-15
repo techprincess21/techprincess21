@@ -3,7 +3,8 @@ import { getServerSession } from "next-auth";
 import { getConfig } from "@/lib/config-store";
 import { authOptions, oktaConfigured } from "@/lib/authOptions";
 import { DEMO_USERS, DEFAULT_USER_ID, groupsToRole } from "@/lib/rbac";
-import { boardIdForCollection, canSeeBoard, effectiveBoardPerms } from "@/lib/board-access";
+import { canSeeBoard, effectiveBoardPerms } from "@/lib/board-access";
+import { VIEWS } from "@/lib/views";
 
 // Server-side identity + permission resolution.
 //
@@ -76,21 +77,29 @@ export async function can(perm: string): Promise<boolean> {
   return me.perms.includes(perm);
 }
 
-// Per-board access context for a data collection: whether the current user can
-// see the board, and their effective permissions on it (base role unioned with
-// any board-membership elevation). Used to gate the data API routes.
+// Per-board access context for a data collection: whether the collection is
+// valid, whether the current user can see the board, and their effective
+// permissions on it (base role unioned with any board-membership elevation).
+// Used to gate the data API routes.
 export async function boardContext(collection: string): Promise<{
+  valid: boolean;
   canSee: boolean;
   perms: string[];
   has: (perm: string) => boolean;
 }> {
   const me = await getIdentity();
   const cfg = await getConfig();
-  const boardId = boardIdForCollection(collection);
-  if (!boardId) {
-    return { canSee: true, perms: me.perms, has: (p) => me.perms.includes(p) };
-  }
+
+  // Resolve which board this collection belongs to (tickets are Launch children;
+  // built-in data boards and custom boards use their own id as the collection).
+  let boardId: string | null = null;
+  if (collection === "tickets") boardId = "launch";
+  else if (VIEWS.some((v) => !v.builder && v.collection === collection)) boardId = collection;
+  else if (cfg.customBoards.some((b) => b.id === collection)) boardId = collection;
+
+  if (!boardId) return { valid: false, canSee: false, perms: [], has: () => false };
+
   const canSee = canSeeBoard(me, boardId, cfg.boards);
   const perms = effectiveBoardPerms(me, boardId, cfg.boards, cfg.roles);
-  return { canSee, perms, has: (p) => perms.includes(p) };
+  return { valid: true, canSee, perms, has: (p) => perms.includes(p) };
 }

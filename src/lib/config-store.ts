@@ -4,6 +4,8 @@ import { VIEWS } from "@/lib/views";
 import { DEFAULT_ROLES, DEFAULT_USER_ROLES } from "@/lib/rbac";
 import type { ConfigAutomation } from "@/lib/playbooks";
 import type { BoardAccess, BoardsConfig } from "@/lib/board-access";
+import { BOARD_TEMPLATE_BY_KEY } from "@/lib/board-templates";
+import type { ViewDef } from "@/lib/types";
 
 // Per-board customization store.
 //
@@ -33,6 +35,8 @@ export interface AppConfig {
   // Per-board access control: visibility (public/private), members, exclusions.
   // A board absent from this map is treated as public with no members.
   boards: BoardsConfig;
+  // User-created boards (their own ViewDef; collection === the board id).
+  customBoards: ViewDef[];
 }
 
 const DATA_DIR = process.env.DATA_DIR || path.join(process.cwd(), ".data");
@@ -64,6 +68,7 @@ function defaultConfig(): AppConfig {
     playbooks: {},
     automations: [],
     boards: {},
+    customBoards: [],
   };
 }
 
@@ -87,6 +92,7 @@ export async function getConfig(): Promise<AppConfig> {
       playbooks: saved.playbooks ?? {},
       automations: saved.automations ?? [],
       boards: saved.boards ?? {},
+      customBoards: saved.customBoards ?? [],
     };
   } catch {
     cache = base;
@@ -243,6 +249,48 @@ export async function setBoardExclusion(boardId: string, email: string, excluded
   const b = ensureBoard(cfg, boardId);
   const e = email.toLowerCase();
   b.excluded = excluded ? [...new Set([...b.excluded, e])] : b.excluded.filter((x) => x !== e);
+  await persist();
+  return cfg;
+}
+
+export async function addCustomBoard(opts: {
+  label: string;
+  templateKey: string;
+  owner: string;
+  visibility: "public" | "private";
+}) {
+  const cfg = await getConfig();
+  const tpl = BOARD_TEMPLATE_BY_KEY[opts.templateKey] ?? Object.values(BOARD_TEMPLATE_BY_KEY)[0];
+  const id = `b_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+  const board: ViewDef = {
+    id,
+    label: opts.label,
+    collection: id,
+    columns: tpl.columns,
+    groupBy: tpl.groupBy,
+    defaults: tpl.defaults,
+    summary: tpl.summary,
+  };
+  cfg.customBoards = [...cfg.customBoards, board];
+  // Seed the per-board config layers, like defaultConfig does for built-ins.
+  cfg.options[id] = Object.fromEntries(
+    tpl.columns.filter((c) => c.type === "select").map((c) => [c.key, [...(c.options ?? [])]])
+  );
+  cfg.columnOrder[id] = tpl.columns.map((c) => c.key);
+  cfg.boards[id] = { owner: opts.owner, visibility: opts.visibility, members: {}, excluded: [] };
+  cfg.tabOrder = [...cfg.tabOrder, id];
+  await persist();
+  return { cfg, id };
+}
+
+export async function deleteCustomBoard(id: string) {
+  const cfg = await getConfig();
+  cfg.customBoards = cfg.customBoards.filter((b) => b.id !== id);
+  delete cfg.boards[id];
+  delete cfg.options[id];
+  delete cfg.columnOrder[id];
+  delete cfg.colors[id];
+  cfg.tabOrder = cfg.tabOrder.filter((t) => t !== id);
   await persist();
   return cfg;
 }

@@ -11,23 +11,27 @@ export default function BoardAccessModal({
   boardId,
   boardLabel,
   access,
+  deletable = false,
   otherBoards,
   onSetVisibility,
   onSetMember,
   onRemoveMember,
   onSetExclusion,
   onClone,
+  onDelete,
   onClose,
 }: {
   boardId: string;
   boardLabel: string;
   access?: BoardAccess;
+  deletable?: boolean;
   otherBoards: { id: string; label: string }[];
   onSetVisibility: (visibility: "public" | "private") => void;
   onSetMember: (email: string, role: string) => void;
   onRemoveMember: (email: string) => void;
   onSetExclusion: (email: string, excluded: boolean) => void;
   onClone: (fromBoardId: string) => void;
+  onDelete: () => void;
   onClose: () => void;
 }) {
   const visibility = access?.visibility ?? "public";
@@ -200,7 +204,20 @@ export default function BoardAccessModal({
         </div>
 
         <div className="modal-foot">
-          <span className="modal-foot-note">Changes save immediately.</span>
+          {deletable ? (
+            <button
+              className="btn btn-danger"
+              onClick={() => {
+                if (confirm(`Delete the board "${boardLabel}"? This removes the board and its rows.`)) {
+                  onDelete();
+                }
+              }}
+            >
+              Delete board
+            </button>
+          ) : (
+            <span className="modal-foot-note">Changes save immediately.</span>
+          )}
           <button className="btn btn-primary" onClick={onClose}>
             Done
           </button>

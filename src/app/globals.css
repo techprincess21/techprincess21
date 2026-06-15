@@ -345,6 +345,60 @@ body {
 .tab-lock {
   font-size: 11px;
 }
+.tab-new {
+  font-weight: 600;
+  color: var(--accent);
+}
+.nb-input {
+  width: 100%;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  padding: 9px 12px;
+  font: inherit;
+}
+.nb-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.nb-templates {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.nb-template {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.nb-template.active {
+  border-color: var(--accent);
+  background: #f5f7ff;
+}
+.nb-template input {
+  grid-row: 1 / span 2;
+  align-self: center;
+}
+.nb-template-label {
+  font-weight: 600;
+}
+.nb-template-blurb {
+  grid-column: 2;
+  font-size: 12px;
+  color: var(--muted);
+}
+.btn-danger {
+  background: #e2445c;
+  color: #fff;
+  border: none;
+}
+.btn-danger:hover {
+  background: #c83a50;
+}
 
 .modal-foot-note {
   margin-right: auto;

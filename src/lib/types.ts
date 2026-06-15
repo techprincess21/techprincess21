@@ -45,7 +45,8 @@ export interface ColumnDef {
 export interface ViewDef {
   id: string;
   label: string;
-  collection: CollectionId;
+  // A built-in CollectionId, or — for user-created boards — the board's own id.
+  collection: string;
   description?: string;
   columns: ColumnDef[];
   // Optional column key to group rows by (renders grouped sections, like the
@@ -55,7 +56,7 @@ export interface ViewDef {
   defaults?: { [key: string]: FieldValue };
   // Optional link to child records (e.g. tickets opened by automations) that can
   // be expanded inline beneath each row.
-  childLink?: { collection: CollectionId; parentField: string; childField: string };
+  childLink?: { collection: string; parentField: string; childField: string };
   // Hide this board's tab (kept in the app, just not shown — e.g. boards with no
   // data for a given demo).
   hidden?: boolean;

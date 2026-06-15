@@ -133,9 +133,13 @@ works today for roles; we extend it to per-board.)
    overrides Co-Admin see-all (the M&A case). Private boards drop out of the tab
    bar for people without access, and the data API enforces it server-side
    (`boardContext` in `auth.ts`, `board-access.ts`). Includes clone-members.
-3. ⬜ **Create new boards** — spin up a new board (from a template or by cloning an
-   existing one), with you as owner.
-4. ⬜ **Clone & polish** — clone members across boards, small quality-of-life bits.
+3. ✅ **Create new boards (BUILT)** — "+ New board" (needs Create-boards
+   permission): name it, pick a template (Simple task board / Launch tracker /
+   Content pipeline), choose Public/Private. The creator becomes the owner.
+   Custom boards are stored in config (their own ViewDef; collection = board id)
+   and can be deleted by the owner/admins from the Board access panel.
+4. ✅ **Clone & polish (BUILT)** — clone another board's members onto a board
+   (in the Board access panel); per-board delete.
 
 ---
 
