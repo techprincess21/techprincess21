@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAdapter } from "@/lib/adapters";
 import { runPlaybooks } from "@/lib/playbooks";
-import { can } from "@/lib/auth";
+import { boardContext } from "@/lib/auth";
 import { getConfig } from "@/lib/config-store";
 import type { CollectionId } from "@/lib/types";
 
@@ -19,7 +19,8 @@ export async function POST(_req: Request, { params }: { params: { collection: st
   if (!isCollection(params.collection)) {
     return NextResponse.json({ error: "Unknown collection" }, { status: 404 });
   }
-  if (!(await can("automation.run"))) {
+  const { canSee, has } = await boardContext(params.collection);
+  if (!canSee || !has("automation.run")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   const adapter = getAdapter();

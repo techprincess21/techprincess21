@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAdapter } from "@/lib/adapters";
-import { can } from "@/lib/auth";
+import { boardContext } from "@/lib/auth";
 import type { CollectionId } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -16,7 +16,8 @@ export async function POST(req: Request, { params }: { params: { collection: str
   if (!isCollection(params.collection)) {
     return NextResponse.json({ error: "Unknown collection" }, { status: 404 });
   }
-  if (!(await can("board.reorder"))) {
+  const { canSee, has } = await boardContext(params.collection);
+  if (!canSee || !has("board.reorder")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   const body = await req.json().catch(() => ({}));

@@ -2,9 +2,14 @@ import { NextResponse } from "next/server";
 import {
   addAutomation,
   addUser,
+  cloneBoardMembers,
   deleteAutomation,
   getConfig,
+  removeBoardMember,
   removeUser,
+  setBoardExclusion,
+  setBoardMember,
+  setBoardVisibility,
   setColumnOptions,
   setColumnOrder,
   setColor,
@@ -15,6 +20,7 @@ import {
   setUserRole,
 } from "@/lib/config-store";
 import { can, getIdentity } from "@/lib/auth";
+import { canManageBoardAccess } from "@/lib/board-access";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -42,6 +48,15 @@ const ACCESS = new Set([
   "automationAdd",
   "automationDelete",
 ]);
+// Board-access actions are gated per board (the actor must be able to manage that
+// specific board), not by the global roles.manage permission.
+const BOARD_ACCESS = new Set([
+  "boardVisibility",
+  "boardMember",
+  "boardMemberRemove",
+  "boardExclude",
+  "boardClone",
+]);
 
 export async function PUT(req: Request) {
   const body = await req.json().catch(() => ({}));
@@ -49,6 +64,14 @@ export async function PUT(req: Request) {
   // Permission gate by action category.
   if (CUSTOMIZE.has(body?.action) && !(await can("board.customize"))) return forbidden();
   if (ACCESS.has(body?.action) && !(await can("roles.manage"))) return forbidden();
+
+  // Board-access actions: the actor must be able to manage this specific board.
+  if (BOARD_ACCESS.has(body?.action)) {
+    const boardId = typeof body?.boardId === "string" ? body.boardId : "";
+    const me = await getIdentity();
+    const cfg = await getConfig();
+    if (!boardId || !canManageBoardAccess(me, boardId, cfg.boards)) return forbidden();
+  }
 
   // Org-Admin protection: a non-Org-Admin can't touch Org Admins or the
   // protected role definitions, even though they hold roles.manage.
@@ -129,6 +152,21 @@ export async function PUT(req: Request) {
   }
   if (body?.action === "automationDelete" && typeof body.id === "string") {
     return NextResponse.json({ config: await deleteAutomation(body.id) });
+  }
+  if (body?.action === "boardVisibility" && typeof body.boardId === "string" && (body.visibility === "public" || body.visibility === "private")) {
+    return NextResponse.json({ config: await setBoardVisibility(body.boardId, body.visibility) });
+  }
+  if (body?.action === "boardMember" && typeof body.boardId === "string" && typeof body.email === "string" && body.email.trim() && typeof body.role === "string") {
+    return NextResponse.json({ config: await setBoardMember(body.boardId, body.email.trim(), body.role) });
+  }
+  if (body?.action === "boardMemberRemove" && typeof body.boardId === "string" && typeof body.email === "string") {
+    return NextResponse.json({ config: await removeBoardMember(body.boardId, body.email) });
+  }
+  if (body?.action === "boardExclude" && typeof body.boardId === "string" && typeof body.email === "string" && body.email.trim() && typeof body.excluded === "boolean") {
+    return NextResponse.json({ config: await setBoardExclusion(body.boardId, body.email.trim(), body.excluded) });
+  }
+  if (body?.action === "boardClone" && typeof body.boardId === "string" && typeof body.fromBoardId === "string") {
+    return NextResponse.json({ config: await cloneBoardMembers(body.fromBoardId, body.boardId) });
   }
   return NextResponse.json({ error: "Invalid config update" }, { status: 400 });
 }

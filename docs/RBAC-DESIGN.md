@@ -127,8 +127,12 @@ works today for roles; we extend it to per-board.)
    **Co-Admin** role, and **Org-Admin protection** (only an Org Admin can
    create/change/remove an Org Admin or edit the Org Admin / Co-Admin role
    definitions). Enforced server-side in `/api/config`.
-2. ⬜ **Public/Private on existing boards** — visibility, members, exclusions, tab
-   filtering, per-board role elevation, server enforcement, the access panel.
+2. ✅ **Public/Private boards (BUILT)** — each board is Public or Private; a
+   per-board **Board access** panel manages visibility, members (with a per-board
+   role that can exceed the person's base role), and a blocked-people list that
+   overrides Co-Admin see-all (the M&A case). Private boards drop out of the tab
+   bar for people without access, and the data API enforces it server-side
+   (`boardContext` in `auth.ts`, `board-access.ts`). Includes clone-members.
 3. ⬜ **Create new boards** — spin up a new board (from a template or by cloning an
    existing one), with you as owner.
 4. ⬜ **Clone & polish** — clone members across boards, small quality-of-life bits.

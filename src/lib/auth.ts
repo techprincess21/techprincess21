@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { getConfig } from "@/lib/config-store";
 import { authOptions, oktaConfigured } from "@/lib/authOptions";
 import { DEMO_USERS, DEFAULT_USER_ID, groupsToRole } from "@/lib/rbac";
+import { boardIdForCollection, canSeeBoard, effectiveBoardPerms } from "@/lib/board-access";
 
 // Server-side identity + permission resolution.
 //
@@ -73,4 +74,23 @@ export async function getIdentity(): Promise<Identity> {
 export async function can(perm: string): Promise<boolean> {
   const me = await getIdentity();
   return me.perms.includes(perm);
+}
+
+// Per-board access context for a data collection: whether the current user can
+// see the board, and their effective permissions on it (base role unioned with
+// any board-membership elevation). Used to gate the data API routes.
+export async function boardContext(collection: string): Promise<{
+  canSee: boolean;
+  perms: string[];
+  has: (perm: string) => boolean;
+}> {
+  const me = await getIdentity();
+  const cfg = await getConfig();
+  const boardId = boardIdForCollection(collection);
+  if (!boardId) {
+    return { canSee: true, perms: me.perms, has: (p) => me.perms.includes(p) };
+  }
+  const canSee = canSeeBoard(me, boardId, cfg.boards);
+  const perms = effectiveBoardPerms(me, boardId, cfg.boards, cfg.roles);
+  return { canSee, perms, has: (p) => perms.includes(p) };
 }

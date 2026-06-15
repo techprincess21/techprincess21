@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAdapter } from "@/lib/adapters";
-import { can } from "@/lib/auth";
+import { boardContext } from "@/lib/auth";
 import type { CollectionId } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -18,6 +18,8 @@ export async function GET(_req: Request, { params }: { params: { collection: str
   if (!isCollection(params.collection)) {
     return NextResponse.json({ error: "Unknown collection" }, { status: 404 });
   }
+  const { canSee } = await boardContext(params.collection);
+  if (!canSee) return forbidden();
   const records = await getAdapter().list(params.collection);
   return NextResponse.json({ records });
 }
@@ -26,7 +28,8 @@ export async function POST(req: Request, { params }: { params: { collection: str
   if (!isCollection(params.collection)) {
     return NextResponse.json({ error: "Unknown collection" }, { status: 404 });
   }
-  if (!(await can("item.create"))) return forbidden();
+  const { canSee, has } = await boardContext(params.collection);
+  if (!canSee || !has("item.create")) return forbidden();
   const body = await req.json().catch(() => ({}));
   const fields = body?.fields ?? {};
   const record = await getAdapter().create(params.collection, fields);

@@ -3,6 +3,7 @@ import path from "node:path";
 import { VIEWS } from "@/lib/views";
 import { DEFAULT_ROLES, DEFAULT_USER_ROLES } from "@/lib/rbac";
 import type { ConfigAutomation } from "@/lib/playbooks";
+import type { BoardAccess, BoardsConfig } from "@/lib/board-access";
 
 // Per-board customization store.
 //
@@ -29,6 +30,9 @@ export interface AppConfig {
   playbooks: { [workType: string]: { [team: string]: { project?: string; assignees?: string } } };
   // User-created automations (added in the Automations builder).
   automations: ConfigAutomation[];
+  // Per-board access control: visibility (public/private), members, exclusions.
+  // A board absent from this map is treated as public with no members.
+  boards: BoardsConfig;
 }
 
 const DATA_DIR = process.env.DATA_DIR || path.join(process.cwd(), ".data");
@@ -59,6 +63,7 @@ function defaultConfig(): AppConfig {
     users: [],
     playbooks: {},
     automations: [],
+    boards: {},
   };
 }
 
@@ -81,6 +86,7 @@ export async function getConfig(): Promise<AppConfig> {
       users: saved.users ?? [],
       playbooks: saved.playbooks ?? {},
       automations: saved.automations ?? [],
+      boards: saved.boards ?? {},
     };
   } catch {
     cache = base;
@@ -196,6 +202,58 @@ export async function addAutomation(automation: ConfigAutomation) {
 export async function deleteAutomation(id: string) {
   const cfg = await getConfig();
   cfg.automations = cfg.automations.filter((a) => a.id !== id);
+  await persist();
+  return cfg;
+}
+
+// --- Per-board access ---
+
+function ensureBoard(cfg: AppConfig, boardId: string): BoardAccess {
+  if (!cfg.boards[boardId]) cfg.boards[boardId] = { visibility: "public", members: {}, excluded: [] };
+  return cfg.boards[boardId];
+}
+
+export async function setBoardVisibility(boardId: string, visibility: "public" | "private") {
+  const cfg = await getConfig();
+  ensureBoard(cfg, boardId).visibility = visibility;
+  await persist();
+  return cfg;
+}
+
+export async function setBoardMember(boardId: string, email: string, role: string) {
+  const cfg = await getConfig();
+  const b = ensureBoard(cfg, boardId);
+  b.members = { ...b.members, [email.toLowerCase()]: role };
+  await persist();
+  return cfg;
+}
+
+export async function removeBoardMember(boardId: string, email: string) {
+  const cfg = await getConfig();
+  const b = ensureBoard(cfg, boardId);
+  const next = { ...b.members };
+  delete next[email.toLowerCase()];
+  b.members = next;
+  await persist();
+  return cfg;
+}
+
+export async function setBoardExclusion(boardId: string, email: string, excluded: boolean) {
+  const cfg = await getConfig();
+  const b = ensureBoard(cfg, boardId);
+  const e = email.toLowerCase();
+  b.excluded = excluded ? [...new Set([...b.excluded, e])] : b.excluded.filter((x) => x !== e);
+  await persist();
+  return cfg;
+}
+
+export async function cloneBoardMembers(fromId: string, toId: string) {
+  const cfg = await getConfig();
+  const from = cfg.boards[fromId];
+  if (!from) return cfg;
+  const to = ensureBoard(cfg, toId);
+  to.members = { ...to.members, ...from.members };
+  to.excluded = [...new Set([...to.excluded, ...from.excluded])];
   await persist();
   return cfg;
 }
