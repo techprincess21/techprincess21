@@ -905,6 +905,18 @@ function Cell({
     );
   }
 
+  if (col.type === "date") {
+    return (
+      <input
+        className={cls}
+        type="date"
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={() => onCommit(draft || null)}
+      />
+    );
+  }
+
   const isNumber = col.type === "number";
   return (
     <input

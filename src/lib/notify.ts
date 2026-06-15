@@ -14,11 +14,12 @@ export function notifyConfigured(): boolean {
 export interface NotifyPref {
   assigned?: boolean; // you were set as an owner/assignee
   status?: boolean; // a status changed on an item you own
+  due?: boolean; // a reminder for items due soon / overdue
 }
 export type NotifyPrefs = { [email: string]: NotifyPref };
 
 // Default: everything on, until the person opts out.
-function wants(email: string, kind: keyof NotifyPref, prefs: NotifyPrefs): boolean {
+export function wants(email: string, kind: keyof NotifyPref, prefs: NotifyPrefs): boolean {
   const p = prefs[email.toLowerCase()];
   return p ? p[kind] !== false : true;
 }
@@ -32,7 +33,7 @@ async function slackUserId(email: string): Promise<string | null> {
   return d?.ok ? (d.user?.id ?? null) : null;
 }
 
-async function slackDM(email: string, text: string): Promise<boolean> {
+export async function slackDM(email: string, text: string): Promise<boolean> {
   try {
     const uid = await slackUserId(email);
     if (!uid) return false;
@@ -58,7 +59,7 @@ export function resolveEmails(value: string, users: { id: string; name: string }
   return u && u.id.includes("@") ? [u.id.toLowerCase()] : [];
 }
 
-function recordTitle(record: Record, columns: ColumnDef[]): string {
+export function recordTitle(record: Record, columns: ColumnDef[]): string {
   const titleCol = columns.find((c) => c.type === "longtext") ?? columns.find((c) => c.type === "text");
   const v = titleCol ? record.fields[titleCol.key] : null;
   return (v != null && String(v).trim()) || "an item";

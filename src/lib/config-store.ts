@@ -99,7 +99,7 @@ async function persist(cfg: AppConfig): Promise<void> {
   await saveJson("config", cfg);
 }
 
-export async function setNotifyPref(email: string, key: "assigned" | "status", value: boolean) {
+export async function setNotifyPref(email: string, key: "assigned" | "status" | "due", value: boolean) {
   const cfg = await getConfig();
   const e = email.toLowerCase();
   cfg.notifyPrefs[e] = { ...(cfg.notifyPrefs[e] ?? {}), [key]: value };

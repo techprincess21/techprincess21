@@ -142,10 +142,16 @@ Dormant until an IT-provisioned Slack app is connected:
 SLACK_BOT_TOKEN=xoxb-...   # bot token with chat:write + users:read.email
 ```
 
-Okta app spec for IT: a Slack app with bot scopes **`chat:write`** and
+Slack app spec for IT: a Slack app with bot scopes **`chat:write`** and
 **`users:read.email`**, installed to the workspace; share the **bot token**
 (`xoxb-…`) to set as `SLACK_BOT_TOKEN`. Until then, preferences still save and the
 app works normally — no DMs are sent.
+
+**Due-date reminders** run as a daily Vercel Cron (`vercel.json` →
+`/api/cron/reminders`, 13:00 UTC) that DMs owners about items due within 3 days or
+overdue, using each board's **date** column. Protect the endpoint by setting
+`CRON_SECRET` in Vercel (Cron sends it automatically); without it the route is
+open in dev. Adjust the schedule in `vercel.json`.
 
 ## Run it
 

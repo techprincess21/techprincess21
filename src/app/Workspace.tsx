@@ -216,7 +216,7 @@ export default function Workspace({
   function applyBoardClone(boardId: string, fromBoardId: string) {
     putConfig({ action: "boardClone", boardId, fromBoardId });
   }
-  function setNotifyPref(key: "assigned" | "status", value: boolean) {
+  function setNotifyPref(key: "assigned" | "status" | "due", value: boolean) {
     putConfig({ action: "notifyPref", email: me.id, key, value });
   }
   async function createBoard(opts: {

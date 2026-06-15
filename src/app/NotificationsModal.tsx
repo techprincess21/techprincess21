@@ -13,11 +13,12 @@ export default function NotificationsModal({
   prefs: NotifyPref;
   slackConfigured: boolean;
   signedInEmail: string | null;
-  onSetPref: (key: "assigned" | "status", value: boolean) => void;
+  onSetPref: (key: "assigned" | "status" | "due", value: boolean) => void;
   onClose: () => void;
 }) {
   const assigned = prefs.assigned !== false;
   const status = prefs.status !== false;
+  const due = prefs.due !== false;
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -44,6 +45,12 @@ export default function NotificationsModal({
             <input type="checkbox" checked={status} onChange={(e) => onSetPref("status", e.target.checked)} />
             <span>
               <strong>Status changes on my items</strong> — an item I own moves to a new status.
+            </span>
+          </label>
+          <label className="nb-check">
+            <input type="checkbox" checked={due} onChange={(e) => onSetPref("due", e.target.checked)} />
+            <span>
+              <strong>Due-date reminders</strong> — a daily nudge about my items due soon or overdue.
             </span>
           </label>
 

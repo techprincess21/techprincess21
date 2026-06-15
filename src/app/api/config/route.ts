@@ -211,7 +211,7 @@ export async function PUT(req: Request) {
   if (body?.action === "boardDelete" && typeof body.boardId === "string") {
     return NextResponse.json({ config: await deleteCustomBoard(body.boardId) });
   }
-  if (body?.action === "notifyPref" && typeof body.email === "string" && (body.key === "assigned" || body.key === "status") && typeof body.value === "boolean") {
+  if (body?.action === "notifyPref" && typeof body.email === "string" && (body.key === "assigned" || body.key === "status" || body.key === "due") && typeof body.value === "boolean") {
     return NextResponse.json({ config: await setNotifyPref(body.email, body.key, body.value) });
   }
   if (body?.action === "boardDuplicate" && typeof body.sourceBoardId === "string" && typeof body.label === "string" && body.label.trim()) {

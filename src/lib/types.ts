@@ -31,6 +31,7 @@ export type ColumnType =
   | "url"
   | "jira"
   | "person"
+  | "date"
   | "automation";
 
 export interface ColumnDef {
