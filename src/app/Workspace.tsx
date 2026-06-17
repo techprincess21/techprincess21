@@ -17,6 +17,7 @@ import NewBoardModal from "./NewBoardModal";
 import NotificationsModal from "./NotificationsModal";
 import AutomationsBuilder from "./AutomationsBuilder";
 import BlueprintsGallery from "./BlueprintsGallery";
+import GettingStarted from "./GettingStarted";
 
 interface Me {
   id: string;
@@ -68,7 +69,7 @@ export default function Workspace({
   // The boards that participate in public/private access (everything that isn't
   // the Automations builder).
   const dataBoardIds = useMemo(
-    () => new Set(allViews.filter((v) => !v.builder && !v.gallery).map((v) => v.id)),
+    () => new Set(allViews.filter((v) => !v.builder && !v.gallery && !v.home).map((v) => v.id)),
     [allViews]
   );
 
@@ -84,7 +85,9 @@ export default function Workspace({
       }
     }
     for (const v of byId.values()) out.push(v);
-    return out.filter((v) => !v.hidden);
+    const shown = out.filter((v) => !v.hidden);
+    // Keep the Getting Started home pinned leftmost regardless of saved order.
+    return [...shown.filter((v) => v.home), ...shown.filter((v) => !v.home)];
   }, [allViews, config?.tabOrder]);
 
   // Hide private boards the current user can't see. (Server enforces this too;
@@ -92,12 +95,12 @@ export default function Workspace({
   const visibleViews = useMemo(() => {
     if (!config) return orderedViews;
     return orderedViews.filter((v) => {
-      if (v.builder || v.gallery || !dataBoardIds.has(v.id)) return true;
+      if (v.builder || v.gallery || v.home || !dataBoardIds.has(v.id)) return true;
       return canSeeBoard(me, v.id, config.boards);
     });
   }, [orderedViews, config, me, dataBoardIds]);
 
-  const firstVisible = views.find((v) => !v.hidden)?.id ?? views[0]?.id;
+  const firstVisible = views.find((v) => v.home)?.id ?? views.find((v) => !v.hidden)?.id ?? views[0]?.id;
   const [activeId, setActiveId] = useState(firstVisible);
   const active = visibleViews.find((v) => v.id === activeId) ?? visibleViews[0];
 
@@ -398,7 +401,18 @@ export default function Workspace({
         )}
       </div>
 
-      {active && active.gallery ? (
+      {active && active.home ? (
+        <GettingStarted
+          name={me.name}
+          description={active.description}
+          boards={visibleViews
+            .filter((v) => dataBoardIds.has(v.id))
+            .map((v) => ({ id: v.id, label: v.label }))}
+          canCreateBoard={has("project.create")}
+          onCreateBoard={() => setNewBoardOpen(true)}
+          onGoto={selectTab}
+        />
+      ) : active && active.gallery ? (
         <BlueprintsGallery
           description={active.description}
           playbooks={listPlaybooks(config?.playbooks, config?.automations)}

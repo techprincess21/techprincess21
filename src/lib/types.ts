@@ -65,6 +65,8 @@ export interface ViewDef {
   builder?: boolean;
   // Render the Blueprints gallery (browsable "plays" + Start button) for this tab.
   gallery?: boolean;
+  // Render the Getting Started home hub for this tab (the default landing tab).
+  home?: boolean;
   // Show the CMO summary widgets across the top of this board.
   summary?: boolean;
 }

@@ -1956,3 +1956,113 @@ td.cell-select {
 .bp-start-modal .modal-body {
   margin-top: 4px;
 }
+
+/* ── Getting Started home ─────────────────────────────────────────── */
+.gs-hero {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 4px 0 22px;
+}
+
+.gs-hero .brand-mark {
+  font-size: 40px;
+  line-height: 1;
+}
+
+.gs-title {
+  margin: 0;
+  font-size: 24px;
+}
+
+.gs-sub {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+  max-width: 60ch;
+}
+
+.gs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.gs-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  text-align: left;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  cursor: pointer;
+  font: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.05s;
+}
+
+.gs-card:hover {
+  border-color: var(--accent);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+.gs-card:active {
+  transform: translateY(1px);
+}
+
+.gs-icon {
+  font-size: 28px;
+  line-height: 1;
+}
+
+.gs-card-title {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.gs-card-body {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+  flex: 1;
+}
+
+.gs-card-cta {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-top: 4px;
+}
+
+.gs-boards-title {
+  margin: 0 0 10px;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.gs-board-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.gs-board-chip {
+  border: 1px solid var(--border-strong);
+  background: var(--panel);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.gs-board-chip:hover {
+  border-color: var(--accent);
+  background: var(--app-bg);
+}

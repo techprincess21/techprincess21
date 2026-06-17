@@ -8,6 +8,15 @@ const STAGES = ["Planning", "Recommendations Created", "With Marketing Strat", "
 
 export const VIEWS: ViewDef[] = [
   {
+    id: "home",
+    label: "🚀 Getting Started",
+    collection: "launch",
+    description:
+      "Welcome to Goatsana. Jump into the things you do most — start a project from a blueprint, build an automation, or spin up a new board.",
+    home: true,
+    columns: [],
+  },
+  {
     id: "content",
     label: "Content Pipeline",
     hidden: true,
