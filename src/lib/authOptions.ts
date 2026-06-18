@@ -1,7 +1,6 @@
 import type { NextAuthOptions } from "next-auth";
 import Okta from "next-auth/providers/okta";
 import { getConfig, recordKnownUser } from "@/lib/config-store";
-import { groupsToRole } from "@/lib/rbac";
 
 // Okta SSO via Auth.js (NextAuth). Entirely gated: if the OKTA_* env vars
 // aren't set, this stays dormant and the app uses the dev "Viewing as" switcher
@@ -35,11 +34,11 @@ export const authOptions: NextAuthOptions = {
         const p = profile as Record<string, unknown>;
         if (typeof p.email === "string") token.email = p.email;
         if (typeof p.name === "string") token.name = p.name;
-        token.groups = Array.isArray(p.groups) ? (p.groups as string[]) : [];
 
         // Record this person in the access roster so admins can see everyone who
-        // has signed in. Mirrors getIdentity's role precedence for the displayed
-        // role (ADMIN_EMAILS → manual override → Okta-group mapping).
+        // has signed in. Okta is only the front gate, so the recorded role is
+        // Viewer by default (ADMIN_EMAILS bootstrap and explicit in-app
+        // assignments are the only things that elevate someone).
         const email = typeof token.email === "string" ? token.email.toLowerCase() : "";
         if (email) {
           try {
@@ -53,7 +52,7 @@ export const authOptions: NextAuthOptions = {
               ? "Org Admin"
               : manual && cfg.roles[manual]
                 ? manual
-                : groupsToRole(token.groups as string[]);
+                : "Viewer";
             await recordKnownUser(email, typeof token.name === "string" ? token.name : email, role);
           } catch {
             // Roster bookkeeping must never block sign-in.

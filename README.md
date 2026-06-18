@@ -85,11 +85,14 @@ NEXTAUTH_SECRET=...        # openssl rand -base64 32
 ```
 
 Okta app spec: OIDC **Web** app (Authorization Code); sign-in redirect
-`https://<domain>/api/auth/callback/okta`; scopes `openid profile email groups`
-(include the **groups** claim). Okta groups map to roles via
-`groupsToRole()` in `src/lib/rbac.ts` (e.g. a group containing "Org Admin" →
-Org Admin); default is Viewer. When Okta is on and nobody's signed in, the app
-shows a sign-in screen and blocks mutations.
+`https://<domain>/api/auth/callback/okta`; Initiate login URI
+`https://<domain>/auth/login` (so launching from the Okta dashboard tile works);
+scopes `openid profile email`. Okta is only the **front gate** — IT decides who
+can reach the app, and roles are controlled inside Goatsana. Everyone who signs
+in is a **Viewer** by default; elevate people in the access panel (or via
+`ADMIN_EMAILS` for the bootstrap admin). There is no Okta-group → role mapping.
+When Okta is on and nobody's signed in, the app shows a sign-in screen and blocks
+mutations.
 
 The dev switcher is gated behind an env var and is **off by default**:
 

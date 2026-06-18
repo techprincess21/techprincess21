@@ -30,20 +30,22 @@ membership grants them.** (Whichever is more permissive wins, per board.)
 
 ## 2. Base role
 
+Okta is only the **front gate** — IT controls *who can reach Goatsana* (by adding
+people to a group that has access to the app), and Goatsana controls *what they
+can do*. Authenticating via Okta does not grant any role.
+
 Every person resolves to exactly one base role. It's decided in this order — the
 first match wins:
 
 1. **`ADMIN_EMAILS`** (env var) → **Org Admin.** The bootstrap so you can never
    lock yourself out. (You're already in here.)
 2. **Manual assignment in-app** → whatever role you set for that person,
-   *including custom roles you build with the checkboxes.* **This overrides their
-   Okta group.** ← this is the "bump a Product Manager up to Project Admin myself"
-   lever.
-3. **Okta group mapping** (`OKTA_GROUP_ROLE_MAP`) → the team-wide default.
-4. **Viewer** → the fallback for everyone else (incl. contractors in `All`).
+   *including custom roles you build with the checkboxes.* ← this is the "bump a
+   Product Manager up to Project Admin myself" lever.
+3. **Viewer** → the default for everyone else who signs in.
 
-So group mapping sets sensible defaults; manual assignment is your override for
-individuals; `ADMIN_EMAILS` protects you at the top.
+There is deliberately **no Okta-group → role mapping**: manual assignment is the
+only way to elevate someone; `ADMIN_EMAILS` protects you at the top.
 
 ### The roles
 

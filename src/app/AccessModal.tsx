@@ -62,8 +62,8 @@ export default function AccessModal({
           </button>
         </div>
         <p className="modal-sub">
-          Define what each role can do, and assign people to roles. People sign in with Okta;
-          their Okta groups set a default role, and anything you set here overrides it per person.
+          Define what each role can do, and assign people to roles. Okta is just the front gate:
+          everyone who signs in is a <strong>Viewer</strong> until you give them a higher role here.
         </p>
 
         <div className="access-tabs">
@@ -124,8 +124,8 @@ export default function AccessModal({
                         )}
                       </span>
                       {isEmail && <span className="pr-email">{u.id}</span>}
-                      {!hasOverride && u.via === "okta" && (
-                        <span className="pr-role-src">role from Okta groups</span>
+                      {!hasOverride && (
+                        <span className="pr-role-src">default — set a role to elevate</span>
                       )}
                     </span>
                     <div className="pr-controls">
@@ -172,10 +172,10 @@ export default function AccessModal({
                 </button>
               </div>
               <p className="cz-note">
-                New people start as Viewer — set their role above. Add a person by their{" "}
-                <strong>Okta email</strong> to pre-assign a role before they ever sign in; their
-                role then applies automatically on first login (and overrides their Okta-group
-                default). Okta groups still set the default for everyone you don&apos;t list here.
+                Everyone who signs in via Okta starts as a <strong>Viewer</strong> and appears here
+                automatically — give them a higher role above. You can also add someone by their{" "}
+                <strong>Okta email</strong> to pre-assign a role before they ever sign in; it applies
+                automatically on first login.
               </p>
             </div>
           )}
