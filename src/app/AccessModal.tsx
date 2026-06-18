@@ -20,7 +20,7 @@ export default function AccessModal({
 }: {
   roles: { [role: string]: string[] };
   userRoles: { [userId: string]: string };
-  users: { id: string; name: string }[];
+  users: { id: string; name: string; role?: string; via?: "okta" }[];
   meRole: string;
   onSaveRole: (role: string, permissions: string[]) => void;
   onSaveUserRole: (userId: string, role: string) => void;
@@ -101,15 +101,32 @@ export default function AccessModal({
             </div>
           ) : (
             <div className="people-roles">
+              {allPeople.length === 0 && (
+                <p className="cz-note">
+                  No one has signed in yet. People appear here automatically the first time they
+                  sign in with Okta — or add someone by email below to pre-assign their role.
+                </p>
+              )}
               {allPeople.map((u) => {
-                const role = userRoles[u.id] ?? "Viewer";
+                // Explicit in-app override wins; otherwise show the role they
+                // resolved to at last Okta sign-in; otherwise Viewer.
+                const hasOverride = userRoles[u.id] != null;
+                const role = userRoles[u.id] ?? u.role ?? "Viewer";
                 const locked = PROTECTED_ROLES.has(role) && !isOrgAdmin;
                 const isEmail = u.id.includes("@");
                 return (
                   <div className="pr-row" key={u.id}>
                     <span className="pr-name">
-                      {u.name}
+                      <span className="pr-name-line">
+                        {u.name}
+                        {u.via === "okta" && (
+                          <span className="pr-badge" title="Signed in via Okta">Okta</span>
+                        )}
+                      </span>
                       {isEmail && <span className="pr-email">{u.id}</span>}
+                      {!hasOverride && u.via === "okta" && (
+                        <span className="pr-role-src">role from Okta groups</span>
+                      )}
                     </span>
                     <div className="pr-controls">
                       <select
