@@ -10,8 +10,24 @@ import path from "node:path";
 // Both store/return plain JSON, so callers (config-store, the mock adapter) just
 // hand us a value and a key. No external SDK — we call the KV REST API directly.
 
-const KV_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
-const KV_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+// Resolve a KV REST credential from the environment. Prefer the canonical
+// unprefixed names, but the Vercel/Upstash Marketplace integration often adds a
+// resource prefix (e.g. "Upstashredis_KV_REST_API_URL"), so fall back to any var
+// whose name ENDS WITH one of the canonical suffixes. Suffix-matching on the
+// full "KV_REST_API_TOKEN" deliberately avoids grabbing "..._READ_ONLY_TOKEN".
+function resolveKvVar(suffixes: string[]): string | undefined {
+  for (const s of suffixes) {
+    const v = process.env[s];
+    if (v) return v;
+  }
+  for (const [k, v] of Object.entries(process.env)) {
+    if (v && suffixes.some((s) => k.endsWith(s))) return v;
+  }
+  return undefined;
+}
+
+const KV_URL = resolveKvVar(["KV_REST_API_URL", "UPSTASH_REDIS_REST_URL"]);
+const KV_TOKEN = resolveKvVar(["KV_REST_API_TOKEN", "UPSTASH_REDIS_REST_TOKEN"]);
 const DATA_DIR = process.env.DATA_DIR || path.join(process.cwd(), ".data");
 
 export function kvEnabled(): boolean {
