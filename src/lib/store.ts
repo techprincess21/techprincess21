@@ -72,3 +72,55 @@ export async function saveJson(key: string, value: unknown): Promise<void> {
     // request still succeeds with in-process data.
   }
 }
+
+// Append-only event log, used for the audit trail. In KV mode this is a Redis
+// list written with LPUSH + LTRIM — atomic, so concurrent events never clobber
+// each other (unlike read-modify-write on a JSON blob). In the file fallback
+// it's a capped JSON array. Newest entries first.
+export async function appendLog(key: string, entry: unknown, cap = 1000): Promise<void> {
+  const data = JSON.stringify(entry);
+  if (kvEnabled()) {
+    try {
+      await kvCommand(["LPUSH", NS + key, data]);
+      await kvCommand(["LTRIM", NS + key, 0, cap - 1]);
+    } catch {
+      // Best effort — a failed audit write must never break the user's action.
+    }
+    return;
+  }
+  try {
+    await fs.mkdir(DATA_DIR, { recursive: true });
+    const file = path.join(DATA_DIR, `${key}.json`);
+    let arr: unknown[] = [];
+    try {
+      arr = JSON.parse(await fs.readFile(file, "utf8"));
+      if (!Array.isArray(arr)) arr = [];
+    } catch {
+      arr = [];
+    }
+    arr.unshift(entry);
+    if (arr.length > cap) arr = arr.slice(0, cap);
+    await fs.writeFile(file, JSON.stringify(arr), "utf8");
+  } catch {
+    // Read-only filesystem: nothing persists.
+  }
+}
+
+export async function readLog<T>(key: string, limit = 200): Promise<T[]> {
+  if (kvEnabled()) {
+    try {
+      const { result } = await kvCommand(["LRANGE", NS + key, 0, limit - 1]);
+      if (Array.isArray(result)) return result.map((s) => JSON.parse(String(s)) as T);
+      return [];
+    } catch {
+      return [];
+    }
+  }
+  try {
+    const raw = await fs.readFile(path.join(DATA_DIR, `${key}.json`), "utf8");
+    const arr = JSON.parse(raw) as T[];
+    return Array.isArray(arr) ? arr.slice(0, limit) : [];
+  } catch {
+    return [];
+  }
+}

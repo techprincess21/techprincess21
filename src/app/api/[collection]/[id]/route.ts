@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { getAdapter } from "@/lib/adapters";
-import { boardContext } from "@/lib/auth";
+import { boardContext, getIdentity } from "@/lib/auth";
 import { permissionForPatch, STATUS_FIELD } from "@/lib/rbac";
 import { getConfig } from "@/lib/config-store";
 import { VIEWS } from "@/lib/views";
 import { notifyConfigured, notifyOnPatch } from "@/lib/notify";
+import { logAudit } from "@/lib/audit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,6 +24,17 @@ export async function PATCH(
   if (!valid) return unknown();
   if (!canSee || !has(needed)) return forbidden();
   const record = await getAdapter().update(params.collection, params.id, fields);
+
+  const actor = await getIdentity();
+  const changed = Object.keys(fields);
+  await logAudit({
+    type: "data",
+    action: "item.update",
+    summary: `Edited ${changed.length ? changed.join(", ") : "fields"} on an item in “${params.collection}”`,
+    actorId: actor.id,
+    actorName: actor.name,
+    actorRole: actor.role,
+  });
 
   // Notify affected people (assignment / status change). Best-effort, and only
   // does any work when Slack is configured.
@@ -59,5 +71,14 @@ export async function DELETE(
   if (!valid) return unknown();
   if (!canSee || !has("item.delete")) return forbidden();
   await getAdapter().remove(params.collection, params.id);
+  const actor = await getIdentity();
+  await logAudit({
+    type: "data",
+    action: "item.delete",
+    summary: `Deleted an item from “${params.collection}”`,
+    actorId: actor.id,
+    actorName: actor.name,
+    actorRole: actor.role,
+  });
   return NextResponse.json({ ok: true });
 }

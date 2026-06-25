@@ -33,6 +33,7 @@ export default function Workspace({
   devLogin = false,
   oktaAuth = false,
   slackConfigured = false,
+  storageEphemeral = false,
 }: {
   views: ViewDef[];
   adapter: string;
@@ -40,6 +41,7 @@ export default function Workspace({
   devLogin?: boolean;
   oktaAuth?: boolean;
   slackConfigured?: boolean;
+  storageEphemeral?: boolean;
 }) {
   const [config, setConfig] = useState<AppConfig | null>(null);
   const [dragTab, setDragTab] = useState<string | null>(null);
@@ -376,6 +378,15 @@ export default function Workspace({
         )}
       </p>
 
+      {storageEphemeral && canManageRoles && (
+        <div className="storage-warning">
+          <strong>⚠️ Changes aren’t being saved.</strong> Durable storage (KV) isn’t connected in
+          this environment, so added people, role changes, and audit logs are lost on restart. Ask
+          IT to connect a KV store (Vercel: <em>Storage → Create → KV</em>, or set{" "}
+          <code>KV_REST_API_URL</code> / <code>KV_REST_API_TOKEN</code>), then redeploy.
+        </div>
+      )}
+
       <div className="tabs">
         {visibleViews.map((v) => (
           <button
@@ -451,6 +462,7 @@ export default function Workspace({
           userRoles={config.userRoles}
           users={config.users}
           meRole={me.role}
+          storageEphemeral={storageEphemeral}
           onSaveRole={saveRole}
           onSaveUserRole={saveUserRole}
           onAddUser={addUser}

@@ -26,6 +26,52 @@ import {
 import { can, getIdentity } from "@/lib/auth";
 import { canManageBoardAccess } from "@/lib/board-access";
 import { getAdapter } from "@/lib/adapters";
+import { logAudit, type AuditType } from "@/lib/audit";
+
+// Map an auditable config action to a human summary. Low-signal cosmetic actions
+// (column options/order, tab order, colors, owner list, notify prefs) are not
+// audited; access/board/automation changes are.
+function summarizeConfigAction(body: { action?: string; [k: string]: unknown }):
+  | { type: AuditType; action: string; summary: string }
+  | null {
+  const s = (v: unknown) => String(v ?? "");
+  switch (body?.action) {
+    case "role":
+      return { type: "access", action: "role.update", summary: `Updated permissions for role “${s(body.role)}”` };
+    case "userRole":
+      return { type: "access", action: "user.role", summary: `Set ${s(body.userId)}'s role to ${s(body.role)}` };
+    case "userAdd":
+      return {
+        type: "access",
+        action: "user.add",
+        summary: `Added ${s(body.name)}${body.email ? ` (${s(body.email)})` : ""}${body.role ? ` as ${s(body.role)}` : ""}`,
+      };
+    case "userRemove":
+      return { type: "access", action: "user.remove", summary: `Removed ${s(body.id)} from the roster` };
+    case "automationAdd":
+      return { type: "automation", action: "automation.add", summary: `Added an automation` };
+    case "automationDelete":
+      return { type: "automation", action: "automation.delete", summary: `Deleted an automation` };
+    case "playbook":
+      return { type: "automation", action: "automation.override", summary: `Changed ${s(body.workType)} / ${s(body.team)} automation target` };
+    case "boardCreate":
+      return { type: "board", action: "board.create", summary: `Created board “${s(body.label)}”` };
+    case "boardDuplicate":
+      return { type: "board", action: "board.duplicate", summary: `Duplicated a board into “${s(body.label)}”` };
+    case "boardDelete":
+      return { type: "board", action: "board.delete", summary: `Deleted a board` };
+    case "boardVisibility":
+      return { type: "board", action: "board.visibility", summary: `Set a board to ${s(body.visibility)}` };
+    case "boardMember":
+      return { type: "board", action: "board.member.add", summary: `Added ${s(body.email)} to a board as ${s(body.role)}` };
+    case "boardMemberRemove":
+      return { type: "board", action: "board.member.remove", summary: `Removed ${s(body.email)} from a board` };
+    case "boardExclude":
+      return { type: "board", action: "board.exclude", summary: `${body.excluded ? "Excluded" : "Un-excluded"} ${s(body.email)} on a board` };
+    default:
+      return null;
+  }
+}
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -120,6 +166,7 @@ export async function PUT(req: Request) {
     }
   }
 
+  const res: NextResponse = await (async (): Promise<NextResponse> => {
   if (body?.action === "options" && body.viewId && body.columnKey && Array.isArray(body.options)) {
     return NextResponse.json({ config: await setColumnOptions(body.viewId, body.columnKey, strList(body.options)) });
   }
@@ -232,5 +279,16 @@ export async function PUT(req: Request) {
     }
     return NextResponse.json({ config: result.cfg, boardId: result.id });
   }
-  return NextResponse.json({ error: "Invalid config update" }, { status: 400 });
+    return NextResponse.json({ error: "Invalid config update" }, { status: 400 });
+  })();
+
+  // Audit access / structural changes (best-effort, only on a successful write).
+  if (res.ok) {
+    const summary = summarizeConfigAction(body);
+    if (summary) {
+      const actor = await getIdentity();
+      await logAudit({ ...summary, actorId: actor.id, actorName: actor.name, actorRole: actor.role });
+    }
+  }
+  return res;
 }

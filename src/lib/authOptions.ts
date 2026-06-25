@@ -1,6 +1,7 @@
 import type { NextAuthOptions } from "next-auth";
 import Okta from "next-auth/providers/okta";
 import { getConfig, recordKnownUser } from "@/lib/config-store";
+import { logAudit } from "@/lib/audit";
 
 // Okta SSO via Auth.js (NextAuth). Entirely gated: if the OKTA_* env vars
 // aren't set, this stays dormant and the app uses the dev "Viewing as" switcher
@@ -53,7 +54,16 @@ export const authOptions: NextAuthOptions = {
               : manual && cfg.roles[manual]
                 ? manual
                 : "Viewer";
-            await recordKnownUser(email, typeof token.name === "string" ? token.name : email, role);
+            const name = typeof token.name === "string" ? token.name : email;
+            await recordKnownUser(email, name, role);
+            await logAudit({
+              type: "login",
+              action: "login",
+              summary: `${name} signed in via Okta`,
+              actorId: email,
+              actorName: name,
+              actorRole: role,
+            });
           } catch {
             // Roster bookkeeping must never block sign-in.
           }

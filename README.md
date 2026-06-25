@@ -130,7 +130,17 @@ Boards, rows, roles, and access all save through a small storage layer
   `.data/*.json` (git-ignored). Delete `.data/` to reset.
 
 Without either (e.g. a serverless deploy with no KV), the app still runs but data
-is in-memory only and resets on cold start.
+is in-memory only and resets on cold start — **added users, role changes, and the
+audit log will silently fail to persist.** When that's the case in production, the
+access panel and an admin banner say so explicitly. Connect KV to fix it.
+
+### Audit log
+
+Sign-ins and changes (access/roles, boards, automations, item edits) are recorded
+to a durable append-only log (`src/lib/audit.ts`, a Redis list in KV mode). Admins
+view it under **Manage access → Audit log**, and see everyone they've explicitly
+elevated under **People & roles**. Like everything else, it only persists with KV
+configured.
 
 ## Notifications (Slack)
 
