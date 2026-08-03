@@ -4,10 +4,10 @@ import { getIdentity } from "@/lib/auth";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Debug helper: shows the current user how they're being resolved — name, the
-// role they landed on, and (crucially) the exact Okta group names the token
-// carries. Use this to discover real group names so they can be wired into
-// OKTA_GROUP_ROLE_MAP. Only ever returns info about the caller's own session.
+// Debug helper: shows the current user how they're being resolved — name and
+// the role they landed on. Okta is only the front gate, so roles come from
+// in-app assignment (or the ADMIN_EMAILS bootstrap), not Okta groups. Only ever
+// returns info about the caller's own session.
 export async function GET() {
   const me = await getIdentity();
   return NextResponse.json({

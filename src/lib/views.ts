@@ -8,6 +8,15 @@ const STAGES = ["Planning", "Recommendations Created", "With Marketing Strat", "
 
 export const VIEWS: ViewDef[] = [
   {
+    id: "home",
+    label: "🚀 Getting Started",
+    collection: "launch",
+    description:
+      "Welcome to Goatsana. Jump into the things you do most — start a project from a blueprint, build an automation, or spin up a new board.",
+    home: true,
+    columns: [],
+  },
+  {
     id: "content",
     label: "Content Pipeline",
     hidden: true,
@@ -84,6 +93,15 @@ export const VIEWS: ViewDef[] = [
       { key: "finalDate", label: "Final Post/Send", type: "text", width: 120 },
       { key: "responsible", label: "Responsible", type: "person", width: 170 },
     ],
+  },
+  {
+    id: "blueprints",
+    label: "📐 Blueprints",
+    collection: "launch",
+    description:
+      "Your team's plays. Browse how we run each kind of work — which tickets open in which teams' projects, with the people and steps — and start one in a click. Same engine as the ⚡ Automations tab; this is just the friendly front door.",
+    gallery: true,
+    columns: [],
   },
   {
     id: "automations",

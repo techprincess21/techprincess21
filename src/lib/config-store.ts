@@ -25,8 +25,11 @@ export interface AppConfig {
   people: string[];
   roles: { [role: string]: string[] };
   userRoles: { [userId: string]: string };
-  // Admin-added users (beyond the built-in demo identities), assignable to roles.
-  users: { id: string; name: string }[];
+  // Known users: people who can be assigned roles. Includes admin-added users
+  // and everyone who has signed in via Okta (recorded on login so admins can see
+  // the full roster). `role` is the effective role at last sign-in (informational
+  // — the live role is still resolved at request time); `via` marks the source.
+  users: { id: string; name: string; role?: string; via?: "okta" }[];
   // Automation builder overrides: per work type, per team -> target project /
   // assignees. Empty = use the code-defined playbook defaults.
   playbooks: { [workType: string]: { [team: string]: { project?: string; assignees?: string } } };
@@ -177,6 +180,28 @@ export async function removeUser(id: string) {
   const cfg = await getConfig();
   cfg.users = cfg.users.filter((u) => u.id !== id);
   delete cfg.userRoles[id];
+  await persist(cfg);
+  return cfg;
+}
+
+// Record a user who just signed in via Okta into the roster, so admins can see
+// everyone who actually has access (not just people added by hand). Crucially
+// this does NOT write cfg.userRoles — that would freeze their role and override
+// their Okta-group mapping. It only stores their name + last-seen role for
+// display. No-ops (no write) when nothing changed, to avoid write churn.
+export async function recordKnownUser(id: string, name: string, role: string) {
+  const cfg = await getConfig();
+  const key = id.trim().toLowerCase();
+  if (!key) return cfg;
+  const existing = cfg.users.find((u) => u.id === key);
+  if (existing) {
+    if (existing.name === name && existing.role === role && existing.via === "okta") return cfg;
+    existing.name = name || existing.name;
+    existing.role = role;
+    existing.via = "okta";
+  } else {
+    cfg.users = [...cfg.users, { id: key, name: name || key, role, via: "okta" }];
+  }
   await persist(cfg);
   return cfg;
 }

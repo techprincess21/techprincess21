@@ -1,17 +1,37 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PERMISSION_CATALOG, ROLE_LIST } from "@/lib/rbac";
+
+interface AuditEvent {
+  ts: number;
+  type: "login" | "access" | "board" | "automation" | "data";
+  action: string;
+  summary: string;
+  actorId: string;
+  actorName?: string;
+  actorRole?: string;
+}
 
 // Org Admin surface to (a) edit which permissions each role has and (b) add
 // people and assign them roles. Persists immediately via the parent's callbacks.
 const PROTECTED_ROLES = new Set(["Org Admin", "Co-Admin"]);
+
+const AUDIT_LABEL: Record<string, string> = {
+  all: "All",
+  login: "Logins",
+  access: "Access",
+  board: "Boards",
+  automation: "Automations",
+  data: "Edits",
+};
 
 export default function AccessModal({
   roles,
   userRoles,
   users,
   meRole,
+  storageEphemeral = false,
   onSaveRole,
   onSaveUserRole,
   onAddUser,
@@ -20,18 +40,37 @@ export default function AccessModal({
 }: {
   roles: { [role: string]: string[] };
   userRoles: { [userId: string]: string };
-  users: { id: string; name: string }[];
+  users: { id: string; name: string; role?: string; via?: "okta" }[];
   meRole: string;
+  storageEphemeral?: boolean;
   onSaveRole: (role: string, permissions: string[]) => void;
   onSaveUserRole: (userId: string, role: string) => void;
   onAddUser: (name: string, email?: string) => void;
   onRemoveUser: (id: string) => void;
   onClose: () => void;
 }) {
-  const [tab, setTab] = useState<"roles" | "people">("roles");
+  const [tab, setTab] = useState<"roles" | "people" | "audit">("roles");
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const isOrgAdmin = meRole === "Org Admin";
+
+  // Audit log (loaded on demand when the tab is opened).
+  const [audit, setAudit] = useState<AuditEvent[] | null>(null);
+  const [auditFilter, setAuditFilter] = useState<"all" | AuditEvent["type"]>("all");
+  useEffect(() => {
+    if (tab !== "audit" || audit !== null) return;
+    fetch("/api/audit", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d) => setAudit(Array.isArray(d.events) ? d.events : []))
+      .catch(() => setAudit([]));
+  }, [tab, audit]);
+
+  // People you've explicitly elevated above the Viewer default.
+  const nameById = (id: string) => users.find((u) => u.id === id)?.name ?? id;
+  const elevated = Object.entries(userRoles)
+    .filter(([, role]) => role && role !== "Viewer")
+    .map(([id, role]) => ({ id, role, name: nameById(id) }))
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   function togglePerm(role: string, key: string) {
     const current = roles[role] ?? [];
@@ -62,9 +101,17 @@ export default function AccessModal({
           </button>
         </div>
         <p className="modal-sub">
-          Define what each role can do, and assign people to roles. People sign in with Okta;
-          their Okta groups set a default role, and anything you set here overrides it per person.
+          Define what each role can do, and assign people to roles. Okta is just the front gate:
+          everyone who signs in is a <strong>Viewer</strong> until you give them a higher role here.
         </p>
+
+        {storageEphemeral && (
+          <div className="access-warning">
+            ⚠️ Durable storage (KV) isn’t connected here, so anything you change on this screen —
+            added people, roles, and the audit log below — won’t survive a restart. Ask IT to
+            connect a KV store, then redeploy.
+          </div>
+        )}
 
         <div className="access-tabs">
           <button className={tab === "roles" ? "active" : ""} onClick={() => setTab("roles")}>
@@ -72,6 +119,9 @@ export default function AccessModal({
           </button>
           <button className={tab === "people" ? "active" : ""} onClick={() => setTab("people")}>
             People &amp; roles
+          </button>
+          <button className={tab === "audit" ? "active" : ""} onClick={() => setTab("audit")}>
+            Audit log
           </button>
         </div>
 
@@ -99,17 +149,55 @@ export default function AccessModal({
                 </tbody>
               </table>
             </div>
-          ) : (
+          ) : tab === "people" ? (
             <div className="people-roles">
+              <div className="elevated-box">
+                <h3 className="elevated-title">
+                  People you’ve given elevated access ({elevated.length})
+                </h3>
+                {elevated.length === 0 ? (
+                  <p className="elevated-empty">
+                    No one is elevated yet — everyone is a Viewer. Set someone’s role below to grant
+                    more.
+                  </p>
+                ) : (
+                  <div className="elevated-list">
+                    {elevated.map((e) => (
+                      <div className="elevated-row" key={e.id}>
+                        <span className="elevated-name">{e.name}</span>
+                        <span className="elevated-role">{e.role}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {allPeople.length === 0 && (
+                <p className="cz-note">
+                  No one has signed in yet. People appear here automatically the first time they
+                  sign in with Okta — or add someone by email below to pre-assign their role.
+                </p>
+              )}
               {allPeople.map((u) => {
-                const role = userRoles[u.id] ?? "Viewer";
+                // Explicit in-app override wins; otherwise show the role they
+                // resolved to at last Okta sign-in; otherwise Viewer.
+                const hasOverride = userRoles[u.id] != null;
+                const role = userRoles[u.id] ?? u.role ?? "Viewer";
                 const locked = PROTECTED_ROLES.has(role) && !isOrgAdmin;
                 const isEmail = u.id.includes("@");
                 return (
                   <div className="pr-row" key={u.id}>
                     <span className="pr-name">
-                      {u.name}
+                      <span className="pr-name-line">
+                        {u.name}
+                        {u.via === "okta" && (
+                          <span className="pr-badge" title="Signed in via Okta">Okta</span>
+                        )}
+                      </span>
                       {isEmail && <span className="pr-email">{u.id}</span>}
+                      {!hasOverride && (
+                        <span className="pr-role-src">default — set a role to elevate</span>
+                      )}
                     </span>
                     <div className="pr-controls">
                       <select
@@ -155,11 +243,51 @@ export default function AccessModal({
                 </button>
               </div>
               <p className="cz-note">
-                New people start as Viewer — set their role above. Add a person by their{" "}
-                <strong>Okta email</strong> to pre-assign a role before they ever sign in; their
-                role then applies automatically on first login (and overrides their Okta-group
-                default). Okta groups still set the default for everyone you don&apos;t list here.
+                Everyone who signs in via Okta starts as a <strong>Viewer</strong> and appears here
+                automatically — give them a higher role above. You can also add someone by their{" "}
+                <strong>Okta email</strong> to pre-assign a role before they ever sign in; it applies
+                automatically on first login.
               </p>
+            </div>
+          ) : (
+            <div className="audit-log">
+              <div className="audit-filters">
+                {(["all", "login", "access", "board", "automation", "data"] as const).map((t) => (
+                  <button
+                    key={t}
+                    className={auditFilter === t ? "active" : ""}
+                    onClick={() => setAuditFilter(t)}
+                  >
+                    {AUDIT_LABEL[t]}
+                  </button>
+                ))}
+              </div>
+              {audit === null ? (
+                <p className="cz-note">Loading…</p>
+              ) : (
+                (() => {
+                  const rows = audit.filter((e) => auditFilter === "all" || e.type === auditFilter);
+                  if (rows.length === 0)
+                    return <p className="cz-note">No activity recorded yet.</p>;
+                  return (
+                    <div className="audit-list">
+                      {rows.map((e, i) => (
+                        <div className="audit-row" key={i}>
+                          <span className={`audit-chip ${e.type}`}>{e.type}</span>
+                          <div className="audit-main">
+                            <span className="audit-summary">{e.summary}</span>
+                            <span className="audit-meta">
+                              {(e.actorName ?? e.actorId) || "someone"}
+                              {e.actorRole ? ` · ${e.actorRole}` : ""} ·{" "}
+                              {new Date(e.ts).toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()
+              )}
             </div>
           )}
         </div>

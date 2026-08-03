@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { getServerSession } from "next-auth";
 import { getConfig } from "@/lib/config-store";
 import { authOptions, oktaConfigured } from "@/lib/authOptions";
-import { DEMO_USERS, DEFAULT_USER_ID, groupsToRole } from "@/lib/rbac";
+import { DEMO_USERS, DEFAULT_USER_ID } from "@/lib/rbac";
 import { canSeeBoard, effectiveBoardPerms } from "@/lib/board-access";
 import { VIEWS } from "@/lib/views";
 
@@ -45,17 +45,17 @@ export async function getIdentity(): Promise<Identity> {
     const session = await getServerSession(authOptions);
     const email = session?.user?.email;
     if (email) {
-      const groups = ((session as { groups?: string[] } | null)?.groups ?? []) as string[];
       const lower = email.toLowerCase();
-      // Base-role precedence: ADMIN_EMAILS (bootstrap) → manual in-app assignment
-      // (overrides groups, can be a custom role) → Okta group mapping → Viewer.
+      // Okta is only the front gate: anyone who signs in is a Viewer by default.
+      // Roles are controlled in-app. Precedence: ADMIN_EMAILS (bootstrap admin) →
+      // explicit in-app assignment → Viewer. Okta groups do NOT confer roles.
       const manual = cfg.userRoles[email] ?? cfg.userRoles[lower];
       const role = adminEmails().includes(lower)
         ? "Org Admin"
         : manual && cfg.roles[manual]
           ? manual
-          : groupsToRole(groups);
-      return { id: lower, name: session?.user?.name ?? email, role, perms: permsFor(role), viaOkta: true, signedIn: true, groups };
+          : "Viewer";
+      return { id: lower, name: session?.user?.name ?? email, role, perms: permsFor(role), viaOkta: true, signedIn: true };
     }
     // Okta on, nobody signed in yet → read-only guest (page shows sign-in).
     return { id: "guest", name: "Guest", role: "Viewer", perms: permsFor("Viewer"), viaOkta: true, signedIn: false };

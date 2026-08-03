@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAdapter } from "@/lib/adapters";
-import { boardContext } from "@/lib/auth";
+import { boardContext, getIdentity } from "@/lib/auth";
+import { logAudit } from "@/lib/audit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,5 +24,14 @@ export async function POST(req: Request, { params }: { params: { collection: str
   const body = await req.json().catch(() => ({}));
   const fields = body?.fields ?? {};
   const record = await getAdapter().create(params.collection, fields);
+  const actor = await getIdentity();
+  await logAudit({
+    type: "data",
+    action: "item.create",
+    summary: `Created an item in “${params.collection}”`,
+    actorId: actor.id,
+    actorName: actor.name,
+    actorRole: actor.role,
+  });
   return NextResponse.json({ record }, { status: 201 });
 }
