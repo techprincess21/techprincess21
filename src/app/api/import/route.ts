@@ -55,6 +55,29 @@ function keyFor(label: string, index: number, used: Set<string>): string {
   return key;
 }
 
+// Pick the header row. Many real-world sheets have a title/dashboard band above
+// the actual table (a project name, "Key Moments", etc.), so row 0 isn't always
+// the header. Heuristic: within the first 25 rows, the header is the densest row
+// (most non-empty cells), earliest on a tie — which is row 0 for a clean sheet,
+// but the true header row for a sheet with a banner on top. Falls back to row 0.
+function pickHeaderRow(aoa: string[][]): number {
+  const scan = Math.min(aoa.length, 25);
+  const nonEmpty = (r: string[]) =>
+    r.reduce((n, c) => n + (String(c ?? "").trim() !== "" ? 1 : 0), 0);
+  let best = 0;
+  let bestCount = -1;
+  for (let i = 0; i < scan; i++) {
+    const c = nonEmpty(aoa[i] ?? []);
+    if (c > bestCount) {
+      bestCount = c;
+      best = i;
+    }
+  }
+  // Need real headers and at least one row beneath them; otherwise use row 0.
+  if (bestCount < 2 || best >= aoa.length - 1) return 0;
+  return best;
+}
+
 export async function POST(req: Request) {
   if (!(await can("project.create"))) {
     return NextResponse.json({ error: "You don't have permission to create boards." }, { status: 403 });
@@ -79,11 +102,32 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "The sheet needs a header row and at least one row of data." }, { status: 400 });
   }
 
-  const rawHeaders = aoa[0].slice(0, MAX_COLS);
+  // Find the real header row (skipping any title/dashboard band on top) and take
+  // the rows beneath it as data.
+  const headerIdx = pickHeaderRow(aoa);
+  const header = (aoa[headerIdx] ?? []).slice(0, MAX_COLS);
+  const dataRows = aoa.slice(headerIdx + 1, headerIdx + 1 + MAX_ROWS);
+  const hasData = dataRows.some((r) => r.some((c) => String(c ?? "").trim() !== ""));
+  if (header.length === 0 || !hasData) {
+    return NextResponse.json(
+      { error: "Couldn't find a header row with data beneath it. Make sure the sheet has column headers and at least one row under them." },
+      { status: 400 }
+    );
+  }
+
+  // Drop spacer columns that are entirely empty (no header text and no data).
+  const colCount = Math.min(MAX_COLS, Math.max(header.length, ...dataRows.map((r) => r.length)));
+  const keep: number[] = [];
+  for (let j = 0; j < colCount; j++) {
+    const headerHas = String(header[j] ?? "").trim() !== "";
+    const dataHas = dataRows.some((r) => String(r[j] ?? "").trim() !== "");
+    if (headerHas || dataHas) keep.push(j);
+  }
+
   const used = new Set<string>();
-  const columns: ColumnDef[] = rawHeaders.map((h, i) => ({
-    key: keyFor(h, i, used),
-    label: String(h || `Column ${i + 1}`).trim() || `Column ${i + 1}`,
+  const columns: ColumnDef[] = keep.map((j, i) => ({
+    key: keyFor(String(header[j] ?? ""), j, used),
+    label: String(header[j] ?? "").trim() || `Column ${j + 1}`,
     type: "text",
     width: i === 0 ? 280 : 160,
   }));
@@ -98,13 +142,12 @@ export async function POST(req: Request) {
 
   // Create the data rows.
   const adapter = getAdapter();
-  const dataRows = aoa.slice(1, MAX_ROWS + 1);
   let imported = 0;
   for (const row of dataRows) {
-    if (row.every((c) => String(c ?? "").trim() === "")) continue; // skip blank lines
+    if (keep.every((j) => String(row[j] ?? "").trim() === "")) continue; // skip blank lines
     const fields: { [key: string]: FieldValue } = {};
     columns.forEach((col, i) => {
-      fields[col.key] = row[i] != null ? String(row[i]) : "";
+      fields[col.key] = row[keep[i]] != null ? String(row[keep[i]]) : "";
     });
     await adapter.create(id, fields);
     imported++;
