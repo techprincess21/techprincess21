@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <style>
+    :root{
+      --bg:#0f1220; --card:#1a1f36; --card2:#232a49; --ink:#eef1ff; --muted:#9aa3c7;
+      --line:#2c3358; --good:#3ddc97; --good-ink:#062a1c; --bad:#ff6b8a; --accent:#7c9cff;
+      --shadow:0 8px 30px rgba(0,0,0,.35);
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0}
+    body{
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+      background:radial-gradient(1200px 600px at 50% -10%,#1b2143 0%,var(--bg) 60%);
+      color:var(--ink); min-height:100vh; -webkit-font-smoothing:antialiased;
+    }
+    .wrap{max-width:760px;margin:0 auto;padding:18px 16px 60px}
+    header.top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:6px 2px 18px}
+    header.top h1{font-size:20px;margin:0;letter-spacing:.2px}
+    header.top .date{color:var(--muted);font-size:13px;margin-top:2px}
+    .gear{background:var(--card);border:1px solid var(--line);color:var(--ink);border-radius:12px;
+      width:44px;height:44px;font-size:20px;cursor:pointer}
+    .gear:active{transform:scale(.96)}
+
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px}
+    .kidcard{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:16px;
+      cursor:pointer;box-shadow:var(--shadow);position:relative;overflow:hidden;transition:transform .08s}
+    .kidcard:active{transform:scale(.985)}
+    .kidcard .emoji{font-size:40px;line-height:1}
+    .kidcard .name{font-size:20px;font-weight:700;margin:8px 0 2px}
+    .kidcard .sub{color:var(--muted);font-size:13px}
+    .bar{height:10px;background:#0c1024;border-radius:99px;overflow:hidden;margin:12px 0 10px;border:1px solid var(--line)}
+    .bar > i{display:block;height:100%;border-radius:99px;transition:width .3s}
+    .wifi{display:inline-flex;align-items:center;gap:6px;font-weight:700;font-size:13px;
+      padding:6px 10px;border-radius:99px}
+    .wifi.on{background:rgba(61,220,151,.15);color:var(--good)}
+    .wifi.off{background:rgba(255,107,138,.14);color:var(--bad)}
+
+    .btn{appearance:none;border:1px solid var(--line);background:var(--card2);color:var(--ink);
+      border-radius:12px;padding:12px 14px;font-size:15px;cursor:pointer;font-weight:600}
+    .btn:active{transform:scale(.98)}
+    .btn.primary{background:var(--accent);border-color:transparent;color:#0a1029}
+    .btn.ghost{background:transparent}
+    .btn.small{padding:8px 10px;font-size:13px;border-radius:10px}
+    .btn.danger{background:rgba(255,107,138,.15);color:var(--bad);border-color:transparent}
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .spacer{flex:1}
+
+    .back{background:none;border:none;color:var(--muted);font-size:15px;cursor:pointer;padding:6px 0;margin-bottom:6px}
+
+    .banner{border-radius:18px;padding:16px 18px;margin:8px 0 18px;font-weight:700;display:flex;align-items:center;gap:12px}
+    .banner.on{background:linear-gradient(135deg,rgba(61,220,151,.22),rgba(61,220,151,.08));border:1px solid rgba(61,220,151,.35)}
+    .banner.off{background:linear-gradient(135deg,rgba(255,107,138,.18),rgba(255,107,138,.06));border:1px solid rgba(255,107,138,.3)}
+    .banner .big{font-size:22px}
+    .banner .small{font-weight:500;color:var(--muted);font-size:13px}
+
+    ul.chores{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:10px}
+    li.chore{display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--line);
+      border-radius:16px;padding:14px 16px;cursor:pointer;transition:transform .06s}
+    li.chore:active{transform:scale(.99)}
+    li.chore.done{background:linear-gradient(135deg,rgba(61,220,151,.12),transparent);border-color:rgba(61,220,151,.35)}
+    .check{width:30px;height:30px;border-radius:9px;border:2px solid var(--line);flex:none;
+      display:flex;align-items:center;justify-content:center;font-size:18px;color:transparent}
+    li.chore.done .check{background:var(--good);border-color:var(--good);color:var(--good-ink)}
+    li.chore .title{font-size:17px;font-weight:600}
+    li.chore.done .title{text-decoration:line-through;text-decoration-color:rgba(255,255,255,.35)}
+    .pill{font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:99px;padding:2px 8px;margin-left:8px}
+    .pill.pending{color:#ffce6b;border-color:rgba(255,206,107,.4)}
+    .pill.optional{opacity:.7}
+
+    .modal-bg{position:fixed;inset:0;background:rgba(4,6,15,.6);backdrop-filter:blur(3px);
+      display:flex;align-items:center;justify-content:center;padding:16px;z-index:50}
+    .modal{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:20px;
+      width:100%;max-width:520px;max-height:88vh;overflow:auto;box-shadow:var(--shadow)}
+    .modal h2{margin:0 0 4px;font-size:19px}
+    .modal .hint{color:var(--muted);font-size:13px;margin:0 0 14px}
+    input,select{width:100%;background:#0c1024;border:1px solid var(--line);color:var(--ink);
+      border-radius:10px;padding:11px 12px;font-size:15px;margin-top:6px}
+    label{display:block;font-size:13px;color:var(--muted);margin-top:12px}
+    .tabs{display:flex;gap:6px;margin:4px 0 14px;flex-wrap:wrap}
+    .tab{padding:8px 12px;border-radius:10px;border:1px solid var(--line);background:transparent;color:var(--muted);cursor:pointer;font-size:14px}
+    .tab.active{background:var(--card2);color:var(--ink)}
+    .adminrow{display:flex;gap:8px;align-items:center;padding:10px;border:1px solid var(--line);border-radius:12px;margin-bottom:8px;flex-wrap:wrap}
+    .adminrow .grow{flex:1;min-width:120px}
+    .kv{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
+    .kv code{background:#0c1024;padding:3px 7px;border-radius:6px;color:var(--accent);word-break:break-all}
+    .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#111634;border:1px solid var(--line);
+      color:var(--ink);padding:11px 16px;border-radius:12px;box-shadow:var(--shadow);font-size:14px;z-index:80;max-width:90vw}
+    .center{text-align:center}
+    .muted{color:var(--muted)}
+    .loading{display:flex;align-items:center;justify-content:center;height:50vh;color:var(--muted)}
+    .chk{display:flex;align-items:center;gap:8px;margin-top:12px}
+    .chk input{width:auto;margin:0}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="top">
+      <div>
+        <h1>🏆 Chore Chart</h1>
+        <div class="date" id="dateLabel"></div>
+      </div>
+      <button class="gear" id="gearBtn" title="Grown-up settings">⚙️</button>
+    </header>
+    <div id="root"><div class="loading">Loading…</div></div>
+  </div>
+
+  <script>
+    // ── tiny helpers ──────────────────────────────────────────────────────
+    var $ = function (id) { return document.getElementById(id); };
+    var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]; }); };
+    function toast(msg){ var t=document.createElement('div'); t.className='toast'; t.textContent=msg;
+      document.body.appendChild(t); setTimeout(function(){t.style.opacity='0';t.style.transition='opacity .4s';},1800);
+      setTimeout(function(){t.remove();},2300); }
+    function run(fn){ return google.script.run.withFailureHandler(function(e){ toast(e && e.message || 'Something went wrong'); }); }
+
+    // ── app state ─────────────────────────────────────────────────────────
+    var app = { snap:null, view:'home', kidId:null, adminPin:null, cfg:null, adminTab:'today', busy:false };
+
+    google.script.run.withSuccessHandler(function (snap) { app.snap = snap; render(); })
+      .withFailureHandler(function (e) { $('root').innerHTML = '<div class="loading">Could not load: ' + esc(e && e.message) + '</div>'; })
+      .getSnapshot();
+
+    $('gearBtn').onclick = openAdminGate;
+
+    function refresh(cb){ run(cb).withSuccessHandler(function (snap){ app.snap = snap; render(); if(cb) cb(snap); }).getSnapshot(); }
+
+    // ── render router ─────────────────────────────────────────────────────
+    function render(){
+      if(app.snap){ $('dateLabel').textContent = friendlyDate(app.snap.date); }
+      if(app.view==='home') return renderHome();
+      if(app.view==='kid') return renderKid();
+    }
+
+    function friendlyDate(iso){
+      try{ var d=new Date(iso+'T12:00:00'); return d.toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'}); }
+      catch(e){ return iso; }
+    }
+
+    // ── HOME ──────────────────────────────────────────────────────────────
+    function renderHome(){
+      var kids = app.snap.kids;
+      var html = '<div class="grid">';
+      kids.forEach(function(k){
+        var pct = k.totalCount ? Math.round(k.doneCount/k.totalCount*100) : 100;
+        var sub = app.snap.rule.type==='points'
+          ? (k.points + ' / ' + k.pointsNeeded + ' pts')
+          : (k.doneCount + ' / ' + k.totalCount + ' chores');
+        html += ''+
+          '<div class="kidcard" onclick="openKid(\''+k.id+'\')" style="border-top:3px solid '+esc(k.color)+'">'+
+            '<div class="emoji">'+esc(k.emoji)+'</div>'+
+            '<div class="name">'+esc(k.name)+'</div>'+
+            '<div class="sub">'+esc(sub)+(k.hasPin?' · 🔒':'')+'</div>'+
+            '<div class="bar"><i style="width:'+pct+'%;background:'+(k.wifiAllowed?'var(--good)':esc(k.color))+'"></i></div>'+
+            '<span class="wifi '+(k.wifiAllowed?'on':'off')+'">'+(k.wifiAllowed?'📶 Wi-Fi on':'🚫 Wi-Fi locked')+'</span>'+
+          '</div>';
+      });
+      html += '</div>';
+      $('root').innerHTML = html;
+    }
+
+    window.openKid = function(id){
+      var kid = findKid(id);
+      if(kid && kid.hasPin){
+        askPin(kid.name+"'s PIN", function(pin){ app.kidPin = pin; app.view='kid'; app.kidId=id; renderKid(); });
+      } else {
+        app.kidPin=''; app.view='kid'; app.kidId=id; renderKid();
+      }
+    };
+
+    // ── KID DETAIL ────────────────────────────────────────────────────────
+    function renderKid(){
+      var kid = findKid(app.kidId);
+      if(!kid){ app.view='home'; return renderHome(); }
+      var remaining = kid.chores.filter(function(c){return c.requiredForWifi && !c.counts;}).length;
+      var bannerHtml;
+      if(kid.wifiAllowed){
+        bannerHtml = '<div class="banner on"><span class="big">🎉</span><div><div>Wi-Fi is unlocked!</div>'+
+          '<div class="small">All done — nice work, '+esc(kid.name)+'.</div></div></div>';
+      } else {
+        var need = app.snap.rule.type==='points'
+          ? (Math.max(0,(kid.pointsNeeded-kid.points))+' more points')
+          : (remaining+' more chore'+(remaining===1?'':'s'));
+        bannerHtml = '<div class="banner off"><span class="big">🔒</span><div><div>'+esc(need)+' to unlock Wi-Fi</div>'+
+          '<div class="small">Tap a chore when you finish it.</div></div></div>';
+      }
+
+      var items = kid.chores.map(function(c){
+        return '<li class="chore '+(c.done?'done':'')+'" onclick="toggle(\''+c.id+'\')">'+
+          '<span class="check">✓</span>'+
+          '<span class="title">'+esc(c.title)+
+            (c.requiredForWifi?'':'<span class="pill optional">extra</span>')+
+            (c.pending?'<span class="pill pending">waiting for grown-up</span>':'')+
+          '</span>'+
+          '<span class="spacer"></span>'+
+          (app.snap.rule.type==='points'?'<span class="pill">'+c.points+'p</span>':'')+
+          '</li>';
+      }).join('');
+
+      $('root').innerHTML =
+        '<button class="back" onclick="goHome()">‹ All kids</button>'+
+        '<div class="row" style="margin-bottom:10px"><div class="emoji" style="font-size:34px">'+esc(kid.emoji)+
+          '</div><div><div style="font-size:22px;font-weight:800">'+esc(kid.name)+'</div></div></div>'+
+        bannerHtml+
+        '<ul class="chores">'+items+'</ul>';
+    }
+
+    window.goHome = function(){ app.view='home'; app.kidId=null; renderHome(); };
+
+    window.toggle = function(choreId){
+      if(app.busy) return; app.busy=true;
+      run().withSuccessHandler(function(snap){ app.snap=snap; app.busy=false; renderKid();
+          var k=findKid(app.kidId); if(k && k.wifiAllowed) toast('Wi-Fi unlocked! 🎉'); })
+        .withFailureHandler(function(e){ app.busy=false; toast(e && e.message || 'Error'); })
+        .toggleChore(app.kidId, choreId, app.kidPin||'');
+    };
+
+    // ── PIN prompt ────────────────────────────────────────────────────────
+    function askPin(title, onOk){
+      showModal(
+        '<h2>'+esc(title)+'</h2>'+
+        '<p class="hint">Enter your PIN to continue.</p>'+
+        '<input id="pinInput" inputmode="numeric" type="password" autocomplete="off" placeholder="••••">'+
+        '<div class="row" style="margin-top:16px"><button class="btn ghost" onclick="closeModal()">Cancel</button>'+
+        '<span class="spacer"></span><button class="btn primary" id="pinOk">OK</button></div>'
+      );
+      setTimeout(function(){ var i=$('pinInput'); if(i){ i.focus();
+        i.addEventListener('keydown',function(e){ if(e.key==='Enter') $('pinOk').click(); }); } },50);
+      $('pinOk').onclick = function(){ var v=$('pinInput').value; closeModal(); onOk(v); };
+    }
+
+    // ── ADMIN ─────────────────────────────────────────────────────────────
+    function openAdminGate(){
+      askPin('Grown-up settings', function(pin){
+        run().withSuccessHandler(function(cfg){ app.adminPin=pin; app.cfg=cfg; app.adminTab='today'; openAdmin(); })
+          .withFailureHandler(function(e){ toast(e && e.message || 'Wrong PIN'); })
+          .adminGetConfig(pin);
+      });
+    }
+
+    function openAdmin(){
+      var tabs = ['today','kids','chores','settings'];
+      var labels = {today:'Today',kids:'Kids',chores:'Chores',settings:'Settings'};
+      var tabHtml = tabs.map(function(t){ return '<button class="tab '+(app.adminTab===t?'active':'')+'" onclick="adminTab(\''+t+'\')">'+labels[t]+'</button>'; }).join('');
+      var body = '';
+      if(app.adminTab==='today') body = adminTodayBody();
+      if(app.adminTab==='kids') body = adminKidsBody();
+      if(app.adminTab==='chores') body = adminChoresBody();
+      if(app.adminTab==='settings') body = adminSettingsBody();
+      showModal('<h2>⚙️ Grown-up panel</h2><div class="tabs">'+tabHtml+'</div><div id="adminBody">'+body+'</div>'+
+        '<div class="row" style="margin-top:16px"><button class="btn ghost" onclick="closeModal()">Close</button></div>');
+    }
+    window.adminTab = function(t){ app.adminTab=t; openAdmin(); };
+
+    // Today: approvals + reset
+    function adminTodayBody(){
+      var needsApproval = app.snap.requireApproval;
+      var rows = app.snap.kids.map(function(k){
+        var choreLines = k.chores.map(function(c){
+          var status = c.counts ? '✅' : (c.pending ? '⏳' : '⬜');
+          var approveBtn = (needsApproval && c.pending)
+            ? '<button class="btn small" onclick="approve(\''+k.id+'\',\''+c.id+'\',true)">Approve</button>' : '';
+          return '<div class="kv"><span>'+status+' '+esc(c.title)+'</span><span>'+approveBtn+'</span></div>';
+        }).join('');
+        return '<div class="adminrow" style="flex-direction:column;align-items:stretch">'+
+          '<div class="row"><b>'+esc(k.emoji)+' '+esc(k.name)+'</b><span class="spacer"></span>'+
+            '<span class="wifi '+(k.wifiAllowed?'on':'off')+'">'+(k.wifiAllowed?'Wi-Fi on':'locked')+'</span></div>'+
+          choreLines+'</div>';
+      }).join('');
+      return (needsApproval?'<p class="hint">Approval is ON — tap Approve to count a chore.</p>':'<p class="hint">Live view of today. Turn on approvals in Settings if you want to confirm each chore.</p>')+
+        rows+
+        '<div class="row" style="margin-top:8px"><button class="btn danger small" onclick="resetToday()">Reset today</button></div>';
+    }
+    window.approve = function(kidId, choreId, val){
+      run().withSuccessHandler(function(snap){ app.snap=snap; app.adminTab='today'; openAdmin(); })
+        .adminSetApproval(app.adminPin, kidId, choreId, val);
+    };
+    window.resetToday = function(){
+      if(!confirm('Clear all of today’s check-offs?')) return;
+      run().withSuccessHandler(function(snap){ app.snap=snap; toast('Today reset'); openAdmin(); })
+        .adminResetToday(app.adminPin);
+    };
+
+    // Kids editor
+    function adminKidsBody(){
+      var rows = app.cfg.kids.map(function(k,i){
+        return '<div class="adminrow">'+
+          '<input style="width:56px;text-align:center" value="'+esc(k.emoji)+'" oninput="app.cfg.kids['+i+'].emoji=this.value">'+
+          '<input class="grow" value="'+esc(k.name)+'" oninput="app.cfg.kids['+i+'].name=this.value" placeholder="Name">'+
+          '<input style="width:96px" value="'+esc(k.pin||'')+'" oninput="app.cfg.kids['+i+'].pin=this.value" placeholder="PIN (opt)" inputmode="numeric">'+
+          '<input class="grow" value="'+esc(k.eeroProfile||'')+'" oninput="app.cfg.kids['+i+'].eeroProfile=this.value" placeholder="eero profile name">'+
+          '<button class="btn danger small" onclick="delKid('+i+')">✕</button>'+
+        '</div>';
+      }).join('');
+      return '<p class="hint">Each kid gets a card. PIN is optional. "eero profile name" must match the Profile name in your eero app (only used by the Wi-Fi bridge).</p>'+
+        rows+
+        '<div class="row"><button class="btn small" onclick="addKid()">+ Add kid</button>'+
+        '<span class="spacer"></span><button class="btn primary small" onclick="saveCfg()">Save kids</button></div>';
+    }
+    window.addKid = function(){ app.cfg.kids.push({id:'',name:'New kid',emoji:'🙂',color:'#7c9cff',pin:'',eeroProfile:''}); adminTab('kids'); };
+    window.delKid = function(i){ app.cfg.kids.splice(i,1); adminTab('kids'); };
+
+    // Chores editor
+    function adminChoresBody(){
+      var kidOpts = app.cfg.kids.map(function(k){ return {id:k.id||k.name,name:k.name}; });
+      var rows = app.cfg.chores.map(function(c,i){
+        var assignSel;
+        var isAll = c.kidIds==='all';
+        assignSel = '<select onchange="setAssign('+i+',this.value)" style="width:130px">'+
+          '<option value="all"'+(isAll?' selected':'')+'>Everyone</option>'+
+          kidOpts.map(function(k){ var sel=(!isAll && (c.kidIds||[]).indexOf(k.id)!==-1 && (c.kidIds||[]).length===1)?' selected':''; return '<option value="'+esc(k.id)+'"'+sel+'>'+esc(k.name)+'</option>'; }).join('')+
+          '</select>';
+        return '<div class="adminrow">'+
+          '<input class="grow" value="'+esc(c.title)+'" oninput="app.cfg.chores['+i+'].title=this.value" placeholder="Chore">'+
+          assignSel+
+          '<input style="width:56px" value="'+(c.points||1)+'" oninput="app.cfg.chores['+i+'].points=parseInt(this.value)||0" inputmode="numeric" title="points">'+
+          '<label class="chk" style="margin:0"><input type="checkbox" '+(c.requiredForWifi!==false?'checked':'')+' onchange="app.cfg.chores['+i+'].requiredForWifi=this.checked"> Wi-Fi</label>'+
+          '<button class="btn danger small" onclick="delChore('+i+')">✕</button>'+
+        '</div>';
+      }).join('');
+      return '<p class="hint">Check "Wi-Fi" to make a chore required to earn Wi-Fi. Uncheck it for bonus/extra chores. "Everyone" assigns to all kids.</p>'+
+        rows+
+        '<div class="row"><button class="btn small" onclick="addChore()">+ Add chore</button>'+
+        '<span class="spacer"></span><button class="btn primary small" onclick="saveCfg()">Save chores</button></div>';
+    }
+    window.setAssign = function(i,val){ app.cfg.chores[i].kidIds = (val==='all')?'all':[val]; };
+    window.addChore = function(){ app.cfg.chores.push({id:'',title:'New chore',points:1,requiredForWifi:true,kidIds:'all'}); adminTab('chores'); };
+    window.delChore = function(i){ app.cfg.chores.splice(i,1); adminTab('chores'); };
+
+    // Settings
+    function adminSettingsBody(){
+      var r = app.cfg.rule||{type:'all',points:0};
+      return '<label>Unlock rule</label>'+
+        '<select id="ruleType" onchange="app.cfg.rule.type=this.value;adminTab(\'settings\')">'+
+          '<option value="all"'+(r.type==='all'?' selected':'')+'>Do ALL Wi-Fi chores</option>'+
+          '<option value="points"'+(r.type==='points'?' selected':'')+'>Reach a points target</option>'+
+        '</select>'+
+        (r.type==='points'?'<label>Points needed to unlock Wi-Fi</label><input value="'+(r.points||0)+'" inputmode="numeric" oninput="app.cfg.rule.points=parseInt(this.value)||0">':'')+
+        '<label class="chk"><input type="checkbox" '+(app.snap.requireApproval?'checked':'')+' onchange="app.cfg.requireApproval=this.checked"> Require a grown-up to approve each chore</label>'+
+        '<label>Change admin PIN</label><input id="newAdminPin" placeholder="leave blank to keep" inputmode="numeric">'+
+        '<div class="kv" style="margin-top:16px"><span>Bridge token (for eero)</span><code>'+esc(app.cfg.bridgeToken||'—')+'</code></div>'+
+        '<p class="hint">The bridge token authorizes the optional Wi-Fi bridge to read chore status. Keep it secret. Rotate it from the Apps Script editor with <code>rotateBridgeToken()</code>.</p>'+
+        '<div class="row" style="margin-top:8px"><span class="spacer"></span><button class="btn primary small" onclick="saveCfg()">Save settings</button></div>';
+    }
+
+    window.saveCfg = function(){
+      var newPin = $('newAdminPin') ? $('newAdminPin').value.trim() : '';
+      var payload = { kids: app.cfg.kids, chores: app.cfg.chores, rule: app.cfg.rule, requireApproval: app.cfg.requireApproval };
+      if(newPin) payload.adminPin = newPin;
+      run().withSuccessHandler(function(cfg){
+          app.cfg=cfg; if(newPin) app.adminPin=newPin;
+          refresh(function(){ openAdmin(); }); toast('Saved');
+        })
+        .withFailureHandler(function(e){ toast(e && e.message || 'Save failed'); })
+        .adminSaveConfig(app.adminPin, payload);
+    };
+
+    // ── modal plumbing ────────────────────────────────────────────────────
+    function showModal(inner){ closeModal();
+      var bg=document.createElement('div'); bg.className='modal-bg'; bg.id='modalBg';
+      bg.onclick=function(e){ if(e.target===bg) closeModal(); };
+      bg.innerHTML='<div class="modal">'+inner+'</div>'; document.body.appendChild(bg);
+    }
+    window.closeModal = function(){ var m=$('modalBg'); if(m) m.remove(); };
+
+    function findKid(id){ if(!app.snap) return null; for(var i=0;i<app.snap.kids.length;i++) if(app.snap.kids[i].id===id) return app.snap.kids[i]; return null; }
+  </script>
+</body>
+</html>

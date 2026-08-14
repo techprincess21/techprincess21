@@ -1,0 +1,5 @@
+# Never commit your real config or eero session token
+bridge.config.json
+.eero_session
+__pycache__/
+*.pyc

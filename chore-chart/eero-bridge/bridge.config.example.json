@@ -1,0 +1,8 @@
+{
+  "_comment": "Copy this to bridge.config.json and fill it in. Never commit the real one.",
+
+  "chore_chart_url": "https://script.google.com/macros/s/XXXXXXXXXXXX/exec",
+  "bridge_token": "paste-the-bridge-token-from-the-chore-chart-Settings-tab",
+
+  "eero_login": "you@example.com"
+}
