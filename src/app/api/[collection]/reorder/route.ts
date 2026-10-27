@@ -5,7 +5,9 @@ import { boardContext } from "@/lib/auth";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function POST(req: Request, { params }: { params: { collection: string } }) {
+export async function POST(req: Request, { params: paramsP }: { params: Promise<{ collection: string }> }
+) {
+  const params = await paramsP;
   const { valid, canSee, has } = await boardContext(params.collection);
   if (!valid) return NextResponse.json({ error: "Unknown collection" }, { status: 404 });
   if (!canSee || !has("board.reorder")) {

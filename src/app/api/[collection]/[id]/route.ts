@@ -15,8 +15,9 @@ const unknown = () => NextResponse.json({ error: "Unknown collection" }, { statu
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { collection: string; id: string } }
+  { params: paramsP }: { params: Promise<{ collection: string; id: string }> }
 ) {
+  const params = await paramsP;
   const body = await req.json().catch(() => ({}));
   const fields = body?.fields ?? {};
   const needed = permissionForPatch(params.collection, Object.keys(fields));
@@ -65,8 +66,9 @@ export async function PATCH(
 
 export async function DELETE(
   _req: Request,
-  { params }: { params: { collection: string; id: string } }
+  { params: paramsP }: { params: Promise<{ collection: string; id: string }> }
 ) {
+  const params = await paramsP;
   const { valid, canSee, has } = await boardContext(params.collection);
   if (!valid) return unknown();
   if (!canSee || !has("item.delete")) return forbidden();

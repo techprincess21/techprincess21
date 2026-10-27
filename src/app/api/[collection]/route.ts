@@ -9,7 +9,9 @@ export const dynamic = "force-dynamic";
 const forbidden = () => NextResponse.json({ error: "Forbidden" }, { status: 403 });
 const unknown = () => NextResponse.json({ error: "Unknown collection" }, { status: 404 });
 
-export async function GET(_req: Request, { params }: { params: { collection: string } }) {
+export async function GET(_req: Request, { params: paramsP }: { params: Promise<{ collection: string }> }
+) {
+  const params = await paramsP;
   const { valid, canSee } = await boardContext(params.collection);
   if (!valid) return unknown();
   if (!canSee) return forbidden();
@@ -17,7 +19,9 @@ export async function GET(_req: Request, { params }: { params: { collection: str
   return NextResponse.json({ records });
 }
 
-export async function POST(req: Request, { params }: { params: { collection: string } }) {
+export async function POST(req: Request, { params: paramsP }: { params: Promise<{ collection: string }> }
+) {
+  const params = await paramsP;
   const { valid, canSee, has } = await boardContext(params.collection);
   if (!valid) return unknown();
   if (!canSee || !has("item.create")) return forbidden();

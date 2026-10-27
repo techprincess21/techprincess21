@@ -62,7 +62,7 @@ export async function getIdentity(): Promise<Identity> {
   }
 
   // Dev switcher / guest fallback.
-  const id = devLoginEnabled() ? cookies().get("devUser")?.value || DEFAULT_USER_ID : "guest";
+  const id = devLoginEnabled() ? (await cookies()).get("devUser")?.value || DEFAULT_USER_ID : "guest";
   const role = cfg.userRoles[id] ?? "Viewer";
   const name =
     DEMO_USERS.find((u) => u.id === id)?.name ??
