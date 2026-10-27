@@ -153,7 +153,7 @@ export default function NewBoardModal({
               <h3>Spreadsheet</h3>
               <input
                 type="file"
-                accept=".csv,.xlsx,.xls"
+                accept=".csv,.xlsx"
                 onChange={(e) => {
                   const f = e.target.files?.[0] ?? null;
                   setFile(f);

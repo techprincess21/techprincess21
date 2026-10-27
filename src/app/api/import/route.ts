@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import * as XLSX from "xlsx";
+import Papa from "papaparse";
+import { readSheet } from "read-excel-file/node";
 import { can, getIdentity } from "@/lib/auth";
 import { addImportedBoard } from "@/lib/config-store";
 import { getAdapter } from "@/lib/adapters";
@@ -12,16 +13,26 @@ export const maxDuration = 60;
 const MAX_ROWS = 2000;
 const MAX_COLS = 40;
 
-// Turn the first sheet of a workbook into an array-of-arrays (row 0 = headers).
-function sheetToAoa(wb: XLSX.WorkBook): string[][] {
-  const ws = wb.Sheets[wb.SheetNames[0]];
-  if (!ws) return [];
-  return XLSX.utils.sheet_to_json(ws, { header: 1, blankrows: false, defval: "" }) as string[][];
+// CSV text -> array-of-arrays (row 0 = headers).
+function csvToAoa(text: string): string[][] {
+  const out = Papa.parse<string[]>(text, { skipEmptyLines: "greedy" });
+  return out.data.map((r) => r.map((c) => String(c ?? "")));
 }
 
-function aoaFromFile(dataBase64: string): string[][] {
+// Uploaded file -> array-of-arrays. .xlsx files are ZIP archives (start with "PK");
+// anything else is treated as CSV. Legacy binary .xls is no longer supported.
+async function aoaFromFile(dataBase64: string): Promise<string[][]> {
   const buf = Buffer.from(dataBase64, "base64");
-  return sheetToAoa(XLSX.read(buf, { type: "buffer" }));
+  if (buf.length >= 2 && buf[0] === 0x50 && buf[1] === 0x4b) {
+    const rows = await readSheet(buf);
+    return rows
+      .map((r) => r.map((c) => (c === null || c === undefined ? "" : c instanceof Date ? c.toISOString().slice(0, 10) : String(c))))
+      .filter((r) => r.some((c) => c.trim() !== ""));
+  }
+  if (buf.length >= 4 && buf[0] === 0xd0 && buf[1] === 0xcf) {
+    throw new Error("Old .xls files aren't supported. Save it as .xlsx or .csv and try again.");
+  }
+  return csvToAoa(buf.toString("utf8"));
 }
 
 async function aoaFromGsheet(url: string): Promise<string[][]> {
@@ -37,7 +48,7 @@ async function aoaFromGsheet(url: string): Promise<string[][]> {
   if (text.trimStart().startsWith("<")) {
     throw new Error("That sheet isn't viewable by link. Set sharing to \"Anyone with the link can view\" and try again.");
   }
-  return sheetToAoa(XLSX.read(text, { type: "string" }));
+  return csvToAoa(text);
 }
 
 // Make a safe, unique field key from a header label.
@@ -90,7 +101,7 @@ export async function POST(req: Request) {
     if (body?.kind === "gsheet" && typeof body.url === "string") {
       aoa = await aoaFromGsheet(body.url);
     } else if (body?.kind === "file" && typeof body.dataBase64 === "string") {
-      aoa = aoaFromFile(body.dataBase64);
+      aoa = await aoaFromFile(body.dataBase64);
     } else {
       return NextResponse.json({ error: "Provide a file or a Google Sheets link." }, { status: 400 });
     }

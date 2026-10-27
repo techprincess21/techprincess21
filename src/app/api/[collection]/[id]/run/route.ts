@@ -11,7 +11,9 @@ export const maxDuration = 60;
 // Manually run the workflow playbook stage that matches a deliverable's current
 // status. This is the deliberate, user-initiated trigger (behind a confirm in
 // the UI) so automations never fire on their own — no runaway processes.
-export async function POST(_req: Request, { params }: { params: { collection: string; id: string } }) {
+export async function POST(_req: Request, { params: paramsP }: { params: Promise<{ collection: string; id: string }> }
+) {
+  const params = await paramsP;
   const { valid, canSee, has } = await boardContext(params.collection);
   if (!valid) {
     return NextResponse.json({ error: "Unknown collection" }, { status: 404 });
